@@ -381,7 +381,7 @@ function updateCodeHint() {
 
 function updateTargetKey() {
   const s = controller.session;
-  if (!s || !state.layoutMap) return;
+  if (!s || !state.layoutMap || !state.currentCodeTable) return;
   const ch = s.text[s.pos];
   if (!ch) return;
   const code = lookupCode(state.currentCodeTable, ch);

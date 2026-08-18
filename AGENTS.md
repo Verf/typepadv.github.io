@@ -38,7 +38,7 @@
 9. **冗余入口**:同一功能避免多个 UI 入口（曾出现「导入文本」按钮 + details summary 重复）；删按钮需同步删 JS 引用否则崩溃。
 10. **码表词条污染**：解析器只索引单字（`Array.from(ch).length===1` 且为汉字），词条/fcitx权重列要跳过；大码表(12.8万行)解析结果缓存到 IndexedDB，避免每次刷新重解析。
 11. **布局翻译 null 边界**：`translateCode(code, null)`（QWERTY 布局）应原样返回码表编码，不能访问 null 映射；KEY_MAP 只覆盖 19 个字母，未列出的原样。
-
-### 测试
-12. **测试断言随功能更新**：默认文本、统计口径变化后，live.test/integration.test 的断言（如「码表提示 ifk」）必须同步更新，否则线上测试误报失败。
-13. **测试环境**：ESM 项目 `.js` 按 type=module 处理，Node 侧工具/测试用 `.cjs`；puppeteer-core 无 `page.waitForTimeout`，用原生 setTimeout；测试走 http://localhost:4173（serve.cjs），file:// 会 CORS 失败。
+12. **updateTargetKey 缺码表保护**：gallman 布局下 layoutMap 非空会进入 updateTargetKey，若 `state.currentCodeTable` 为 null（码表尚未加载完）→ `lookupCode(null)` → `null.charToCodes` 崩溃。所有查码表函数调用前必须校验 currentCodeTable 非空（updateCodeHint/updateTargetKey/flashForLastKey 三处）。
+13. **测试断言随功能更新**：默认文本、统计口径变化后，live.test/integration.test 的断言（如「码表提示 ifk」）必须同步更新，否则线上测试误报失败。
+14. **测试环境**：ESM 项目 `.js` 按 type=module 处理，Node 侧工具/测试用 `.cjs`；puppeteer-core 无 `page.waitForTimeout`，用原生 setTimeout；测试走 http://localhost:4173（serve.cjs），file:// 会 CORS 失败。
+15. **puppeteer 多页面导航限制**：本环境 puppeteer-core 对同页 reload/多 page 二次 goto 会报 `Target closed`（大文件加载+IndexedDB 场景），回归测试别依赖导航重进；用 `page.evaluateOnNewDocument` 注入 localStorage 模拟「重新进入」。
