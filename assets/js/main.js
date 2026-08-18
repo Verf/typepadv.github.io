@@ -209,7 +209,32 @@ async function loadCodeTable(key) {
 // ---- 文本管理 ----
 const SAMPLE_TEXT = '宇浩星陈跟打器，用于练习宇浩星陈输入方案。\n跟打时请保持输入法为中文模式，逐字输入即可。\n本工具不捕获物理按键，只校验上屏文字与原文是否一致。';
 
+// 常用字练习数据（按字频降序，来自 MTSU 字频统计）
+const COMMON_CHARS_URL = 'assets/code-tables/common-3500.txt';
+const COMMON_RANGES = [
+  { id: 'common-1-500', name: '常见字 1-500', start: 0, end: 500 },
+  { id: 'common-501-1000', name: '常见字 501-1000', start: 500, end: 1000 },
+  { id: 'common-1001-1500', name: '常见字 1001-1500', start: 1000, end: 1500 },
+  { id: 'common-all', name: '全部 3500 常字', start: 0, end: 3500 },
+];
+let commonChars = null; // 加载后的常用字数组
+
+async function loadCommonChars() {
+  if (commonChars) return commonChars;
+  try {
+    const resp = await fetch(COMMON_CHARS_URL);
+    const text = await resp.text();
+    commonChars = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    return commonChars;
+  } catch (e) {
+    console.warn('常用字加载失败', e);
+    commonChars = [];
+    return commonChars;
+  }
+}
+
 async function loadDefaultText() {
+  commonChars = await loadCommonChars();
   state.currentText = SAMPLE_TEXT;
   state.selectedTextId = 'internal:sample';
   renderTextList();
@@ -219,6 +244,15 @@ async function loadDefaultText() {
 function renderTextList() {
   dom.textList.innerHTML = '';
   const items = [];
+
+  // 常用字练习分组
+  if (commonChars && commonChars.length > 0) {
+    for (const range of COMMON_RANGES) {
+      const slice = commonChars.slice(range.start, range.end);
+      items.push({ id: range.id, name: range.name, content: slice.join(''), isCommon: true });
+    }
+  }
+
   items.push({ id: 'internal:sample', name: '示例文本', content: SAMPLE_TEXT });
   // 自定义文本
   customTextStore.getAll().then((texts) => {
@@ -226,7 +260,14 @@ function renderTextList() {
       items.push({ id: t.id, name: t.name, content: t.content });
     }
     dom.textList.innerHTML = '';
+    let lastWasCommon = false;
     for (const item of items) {
+      // 常用字与示例/自定义之间加分组分隔
+      if (item.isCommon && !lastWasCommon) {
+        appendGroupLabel('字库练习');
+      } else if (!item.isCommon && lastWasCommon) {
+        appendGroupLabel('其他文本');
+      }
       const chip = document.createElement('span');
       chip.className = 'text-item' + (item.id === state.selectedTextId ? ' active' : '');
       chip.textContent = item.name + '（' + item.content.length + '字）';
@@ -237,6 +278,14 @@ function renderTextList() {
         startSession(item.content);
       });
       dom.textList.appendChild(chip);
+      lastWasCommon = item.isCommon;
+    }
+
+    function appendGroupLabel(label) {
+      const div = document.createElement('span');
+      div.className = 'text-group-label';
+      div.textContent = label;
+      dom.textList.appendChild(div);
     }
   });
 }

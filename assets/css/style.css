@@ -125,7 +125,15 @@ body { min-height: 100vh; }
 #history-section th:nth-child(2), #history-section td:nth-child(2) { display: none; }
 
 /* ===== 文本管理 ===== */
-.text-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+.text-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; align-items: center; }
+.text-group-label {
+  width: 100%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted-color);
+  margin-top: 0.25rem;
+}
+.text-group-label:first-child { margin-top: 0; }
 .text-item {
   padding: 0.35rem 0.8rem;
   border: 1px solid var(--card-border-color);
