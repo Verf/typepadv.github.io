@@ -98,7 +98,7 @@ async function init() {
   await populateCodetableOptions();
   bindEvents();
   renderSettings();
-  renderKeyboardDefault();
+  applyLayout(); // 设置 layoutMap（从保存的设置恢复），并渲染键盘 + 更新码表提示
   await loadDefaultText();
   renderHistory();
   await loadCodeTable(state.settings.codetable);
