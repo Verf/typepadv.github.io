@@ -26,12 +26,15 @@ const state = {
     codetable: 'star-builtin',
     fingerColor: true,
     showCodeHint: true,
+    pageSize: 20, // 跟打区每页字数（0 = 全部）
   },
   currentText: null,
   layoutMap: null,      // 当前布局的翻译映射（null = qwerty 不翻译）
   currentCodeTable: null, // { charToCodes, direction }
   customLayouts: [],    // [{id, name, map}]
   selectedTextId: null,
+  lastCursorPage: null, // 上次渲染的光标所在页（用于检测输入翻页）
+  viewPage: null,       // 手动查看的页码（null = 跟随光标）
 };
 
 // ---- DOM 引用 ----
@@ -46,6 +49,8 @@ function $(sel) {
 const dom = {
   typingArea: $('#typing-area'),
   typedText: $('#typed-text'),
+  typingPagination: $('#typing-pagination'),
+  pageSizeSelect: $('#page-size-select'),
   codeHint: $('#code-hint'),
   layoutSelect: $('#layout-select'),
   codetableSelect: $('#codetable-select'),
@@ -119,6 +124,7 @@ function renderSettings() {
   dom.codetableSelect.value = state.settings.codetable;
   dom.fingerColor.checked = state.settings.fingerColor;
   dom.showCodeHint.checked = state.settings.showCodeHint;
+  dom.pageSizeSelect.value = String(state.settings.pageSize ?? 20);
 }
 
 // ---- 布局 ----
@@ -316,6 +322,8 @@ async function handleImportText() {
 
 // ---- 跟打会话 ----
 function startSession(text) {
+  state.lastCursorPage = null;
+  state.viewPage = null;
   controller.start(text);
   controller.resetInputTracking();
   updateCodeHint();
@@ -325,20 +333,51 @@ function startSession(text) {
 function renderTyping(session) {
   if (!session) return;
   state.sessionView = session;
-  // 渲染逐字状态
+  const pageSize = state.settings.pageSize ?? 20; // 0 = 全部
+  const total = session.text.length;
+  const totalPages = pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+  // 光标所在页（pos 在文末时取最后一页）
+  const cursorPage = pageSize > 0 ? Math.floor(Math.min(session.pos, Math.max(total - 1, 0)) / pageSize) : 0;
+  // 光标页变化（正在输入/回改）→ 强制跟随；手动翻页不动光标 → 保持查看页
+  if (state.lastCursorPage !== cursorPage) {
+    state.lastCursorPage = cursorPage;
+    state.viewPage = null;
+  }
+  // 实际显示页：优先手动查看页，否则跟随光标
+  const pageIndex = state.viewPage ?? cursorPage;
+  const start = pageIndex * pageSize;
+  const end = Math.min(start + pageSize, total);
+
+  // 渲染当前页文字
   let html = '';
-  for (let i = 0; i < session.text.length; i++) {
-    const ch = session.text[i];
-    const st = session.charStates[i];
-    let cls = 'char ';
-    if (i === session.pos) cls += 'current ';
-    if (st === 'correct') cls += 'correct ';
-    else if (st === 'error') cls += 'error ';
-    else if (st === 'backspaced') cls += 'backspaced ';
-    else cls += 'pending ';
-    html += `<span class="${cls}">${ch}</span>`;
+  if (pageSize > 0) {
+    for (let i = start; i < end; i++) {
+      html += charSpan(session, i);
+    }
+  } else {
+    for (let i = 0; i < total; i++) {
+      html += charSpan(session, i);
+    }
   }
   dom.typedText.innerHTML = html;
+
+  // 页码导航
+  if (pageSize > 0 && totalPages > 1) {
+    const prevBtn = `<button class="page-nav" data-page="${pageIndex - 1}" ${pageIndex === 0 ? 'disabled' : ''}>‹ 上一页</button>`;
+    const nextBtn = `<button class="page-nav" data-page="${pageIndex + 1}" ${pageIndex >= totalPages - 1 ? 'disabled' : ''}>下一页 ›</button>`;
+    dom.typingPagination.innerHTML =
+      prevBtn + `<span class="page-indicator">${pageIndex + 1} / ${totalPages}</span>` + nextBtn;
+    dom.typingPagination.querySelectorAll('.page-nav').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        state.viewPage = Number(btn.dataset.page);
+        renderTyping(session);
+      });
+    });
+  } else {
+    dom.typingPagination.innerHTML = '';
+  }
+
   // 更新统计
   const st = stats.computeStats(session, Date.now());
   dom.statTime.textContent = st.elapsedSec.toFixed(1) + 's';
@@ -351,6 +390,19 @@ function renderTyping(session) {
   // 码表提示 & 目标键
   if (state.settings.showCodeHint) updateCodeHint();
   updateTargetKey();
+}
+
+/** 渲染单个字符 span（辅助） */
+function charSpan(session, i) {
+  const ch = session.text[i];
+  const st = session.charStates[i];
+  let cls = 'char ';
+  if (i === session.pos) cls += 'current ';
+  if (st === 'correct') cls += 'correct ';
+  else if (st === 'error') cls += 'error ';
+  else if (st === 'backspaced') cls += 'backspaced ';
+  else cls += 'pending ';
+  return `<span class="${cls}">${ch}</span>`;
 }
 
 function updateCodeHint() {
@@ -621,6 +673,16 @@ function bindEvents() {
     state.settings.showCodeHint = dom.showCodeHint.checked;
     saveSettings();
     updateCodeHint();
+  });
+  // 分页大小切换
+  dom.pageSizeSelect.addEventListener('change', () => {
+    state.settings.pageSize = Number(dom.pageSizeSelect.value);
+    saveSettings();
+    if (controller.session) {
+      state.lastCursorPage = null; // 重新计算跟随页
+      state.viewPage = null;
+      renderTyping(controller.session);
+    }
   });
 
   // 布局管理

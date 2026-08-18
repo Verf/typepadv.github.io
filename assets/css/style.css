@@ -147,6 +147,44 @@ body { min-height: 100vh; }
 
 /* ===== 跟打区 ===== */
 .typing-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.typing-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  min-height: 1.6rem;
+}
+.page-size-select {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--muted-color);
+}
+.page-size-select select {
+  width: auto;
+  padding: 0.15rem 0.4rem;
+  margin: 0;
+  font-size: 0.8rem;
+}
+.typing-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.page-nav {
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  margin: 0;
+  width: auto;
+}
+.page-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-indicator {
+  font-size: 0.8rem;
+  color: var(--muted-color);
+  white-space: nowrap;
+}
 .typing-area {
   font-size: 1.5rem;
   line-height: 2;
