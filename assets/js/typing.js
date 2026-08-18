@@ -24,6 +24,14 @@ export class TypingController {
     this.render(this.session);
   }
 
+  /** 重置输入跟踪状态（切换文本/重新开始时调用） */
+  resetInputTracking() {
+    if (this.session) {
+      this.session.lastLen = 0;
+      this.session.lastValue = '';
+    }
+  }
+
   getView() {
     const s = this.session;
     return {
@@ -37,6 +45,7 @@ export class TypingController {
     if (!this.session) return;
     const s = this.session;
 
+    let changed = false;
     // 退格回改检测：输入内容长度减少 → 回改
     const prevLen = s.lastLen || 0;
     if (inputValue.length < prevLen) {
@@ -45,25 +54,31 @@ export class TypingController {
         applyBackspace(s, now);
       }
       this.finished = false; // 回改后回到未完成态
+      changed = true;
     } else if (inputValue.length > prevLen) {
       // 新增上屏内容：取新增部分（从 prevLen 开始）
       const added = inputValue.slice(prevLen);
       // applyInput 会与原文从 pos 对比并推进
       this._applyAdded(added, now);
       if (this.finished) this.finished = false; // 有新输入则继续会话
+      changed = true;
     }
     // 内容长度不变但内容变化（替换）——按整体重新比对（少见，简化处理）
     else if (prevLen > 0 && inputValue !== s.lastValue) {
       // 替换场景：把整体作为新增处理（重新对齐从 pos 开始）
       this._applyAdded(inputValue.slice(s.pos), now);
+      changed = true;
     }
+
+    // 首次有效输入即计时开始
+    if (changed && !s.startTime) s.startTime = now;
 
     s.lastLen = inputValue.length;
     s.lastValue = inputValue;
-    this.render(this.session);
+    if (changed) this.render(this.session);
 
     // 完成检测
-    if (!this.finished && isDone(s)) {
+    if (changed && !this.finished && isDone(s)) {
       s.endTime = now;
       this.finished = true;
       this.onFinish(computeStats(s, now));

@@ -51,8 +51,9 @@ export function parseCodeTable(text) {
       for (let i = 1; i < tokens.length; i++) {
         const ch = tokens[i];
         // 跳过可能是权重的数字 token（如 fcitx 第三列）
-        if (/^\d+$/.test(ch)) continue;
-        if (ch.trim()) addEntry(charToCodes, ch, code);
+        if (/^\d+$/.test(ch) || !ch.trim()) continue;
+        // 只索引单字（词条暂不索引，后续可扩展 phraseToCodes）
+        if (isSingleHan(ch)) addEntry(charToCodes, ch, code);
       }
     } else if (d === 'code-right') {
       direction = direction || d;
@@ -65,8 +66,9 @@ export function parseCodeTable(text) {
       if (code === null) continue;
       for (let i = 0; i < tokens.length; i++) {
         const ch = tokens[i];
-        if (ch === code || /^\d+$/.test(ch)) continue;
-        if (ch.trim()) addEntry(charToCodes, ch, code);
+        if (ch === code || /^\d+$/.test(ch) || !ch.trim()) continue;
+        // 只索引单字
+        if (isSingleHan(ch)) addEntry(charToCodes, ch, code);
       }
     }
     // d === null 且无 direction 时跳过（文件头）
@@ -80,6 +82,11 @@ export function parseCodeTable(text) {
       uniqueChars: charToCodes.size,
     },
   };
+}
+
+/** 判断是否为单个汉字（码点长度 1 且含汉字） */
+function isSingleHan(ch) {
+  return Array.from(ch).length === 1 && /[\u4e00-\u9fff]/.test(ch);
 }
 
 function addEntry(map, ch, code) {

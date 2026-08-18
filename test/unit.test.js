@@ -15,9 +15,9 @@ async function importESM(rel) {
 
 (async () => {
   let pass = 0, fail = 0;
-  function t(name, fn) {
+  async function t(name, fn) {
     try {
-      fn();
+      await fn();
       pass++;
       console.log('  ✅', name);
     } catch (e) {
@@ -207,6 +207,37 @@ async function importESM(rel) {
     assert.strictEqual(c.finished, false);
     c.handleInput('就林', 4000);
     assert.ok(c.finished);
+  });
+
+
+  // ---- 修复回归测试（reviewer 发现的问题）----
+  console.log('\n[regression] 修复回归');
+  await t('KPM 不再天文数字（startTime 生效）', async () => {
+    const { TypingController } = await importESM('assets/js/typing.js');
+    const c = new TypingController({});
+    c.start('就林');
+    c.handleInput('就', 1000);
+    c.handleInput('就林', 5000); // 4 秒完成
+    const view = c.getView();
+    const kpm = view.stats.kpm;
+    assert.ok(kpm < 100000, 'KPM 应为合理值，实际 ' + kpm);
+  });
+  await t('startSession 重置 lastLen（换文本后首字不丢）', async () => {
+    const { TypingController } = await importESM('assets/js/typing.js');
+    const c = new TypingController({});
+    c.start('甲乙');
+    c.handleInput('甲', 1000);
+    c.start('丙丁'); // 切换文本
+    c.resetInputTracking();
+    c.handleInput('丙', 2000);
+    assert.strictEqual(c.session.pos, 1);
+    assert.strictEqual(c.session.charStates[0], 'correct');
+  });
+  await t('parser 忽略词条（只索引单字）', async () => {
+    const parser2 = await importESM('assets/js/parser.js');
+    const p = parser2.parseCodeTable('ab\t我们\na\t就');
+    assert.strictEqual(p.charToCodes.has('我们'), false, '词条不应入库');
+    assert.strictEqual(p.charToCodes.get('就')[0], 'a');
   });
 
   // 汇总

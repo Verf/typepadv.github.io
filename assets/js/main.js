@@ -206,18 +206,19 @@ async function loadCodeTable(key) {
 }
 
 // ---- 文本管理 ----
+const SAMPLE_TEXT = '宇浩星陈跟打器，用于练习宇浩星陈输入方案。\n跟打时请保持输入法为中文模式，逐字输入即可。\n本工具不捕获物理按键，只校验上屏文字与原文是否一致。';
+
 async function loadDefaultText() {
-  const sample = '宇浩星陈跟打器，用于练习宇浩星陈输入方案。\n跟打时请保持输入法为中文模式，逐字输入即可。\n本工具不捕获物理按键，只校验上屏文字与原文是否一致。';
-  state.currentText = sample;
+  state.currentText = SAMPLE_TEXT;
   state.selectedTextId = 'internal:sample';
   renderTextList();
-  startSession(sample);
+  startSession(SAMPLE_TEXT);
 }
 
 function renderTextList() {
   dom.textList.innerHTML = '';
   const items = [];
-  items.push({ id: 'internal:sample', name: '示例文本', content: state.currentText });
+  items.push({ id: 'internal:sample', name: '示例文本', content: SAMPLE_TEXT });
   // 自定义文本
   customTextStore.getAll().then((texts) => {
     for (const t of texts) {
@@ -252,6 +253,7 @@ async function handleImportText() {
 // ---- 跟打会话 ----
 function startSession(text) {
   controller.start(text);
+  controller.resetInputTracking();
   updateCodeHint();
   renderTyping(controller.session);
 }
@@ -461,41 +463,67 @@ async function saveLayoutEditor() {
 // ---- 事件绑定 ----
 function bindEvents() {
   // 打字区：监听 input 事件的输入框（隐藏）
-  // 方案：在 typing-area 内嵌一个透明 input 捕获上屏
+  // 方案：隐藏 textarea 捕获输入法上屏（可含换行，兼容多行文本）
   const input = document.createElement('textarea');
   input.id = 'hidden-input';
   input.autocomplete = 'off';
   input.autocapitalize = 'off';
+  input.autocorrect = 'off';
   input.spellcheck = false;
   input.wrap = 'off';
   input.rows = 1;
-  input.style.cssText = 'position:absolute;opacity:0;pointer-events:none;';
+  // 关键：可聚焦但不可见（不用 pointer-events:none，否则无法聚焦）
+  input.setAttribute('aria-hidden', 'true');
+  input.tabIndex = -1;
+  input.style.cssText =
+    'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;border:0;padding:0;margin:0;background:transparent;';
   document.body.appendChild(input);
 
-  dom.typingArea.addEventListener('click', () => {
-    input.focus();
+  // 打字区点击（全区域委托，含字符区）→ 聚焦输入
+  dom.typingArea.addEventListener('click', (e) => {
+    e.preventDefault();
+    input.focus({ preventScroll: true });
     input.value = '';
     controller.session && Object.assign(controller.session, { lastLen: 0, lastValue: '' });
   });
 
-  input.addEventListener('input', () => {
+  // IME 组合态：composing 期间的 input 不计数（避免重复统计）
+  let isComposing = false;
+  input.addEventListener('compositionstart', () => {
+    isComposing = true;
+    // 组合开始：记下当前值，防止组合中临时文本被当输入
+    input.dataset.composeStart = input.value;
+  });
+  input.addEventListener('compositionend', () => {
+    isComposing = false;
+    // 组合结束：只统计最终上屏的增量（组合期临时变化忽略）
+    if (input.dataset.composeStart !== undefined && input.value !== input.dataset.composeStart) {
+      controller.handleInput(input.value);
+      flashForLastKey();
+    }
+    delete input.dataset.composeStart;
+  });
+  input.addEventListener('input', (e) => {
+    if (isComposing || e.isComposing) return; // 组合中忽略
     controller.handleInput(input.value);
-    // 同步虚拟键盘反馈（若有布局映射，flash 首键）
-    if (state.layoutMap && controller.session) {
-      const s = controller.session;
-      const ch = s.text[s.pos - 1];
-      if (ch) {
-        const code = state.currentCodeTable && lookupCode(state.currentCodeTable, ch);
-        if (code) {
-          const translated = translateCode(code, state.layoutMap);
-          const last = translated[translated.length - 1];
-          // 判定这次按键是否正确：上屏字符是否匹配
-          const correct = s.charStates[s.pos - 1] === 'correct';
-          flashKey(dom.keyboard, last, correct);
-        }
+    flashForLastKey();
+  });
+
+  function flashForLastKey() {
+    // 同步虚拟键盘反馈（若有布局映射，flash 最后键）
+    if (!state.layoutMap || !controller.session) return;
+    const s = controller.session;
+    const ch = s.text[s.pos - 1];
+    if (ch) {
+      const code = state.currentCodeTable && lookupCode(state.currentCodeTable, ch);
+      if (code) {
+        const translated = translateCode(code, state.layoutMap);
+        const last = translated[translated.length - 1];
+        const correct = s.charStates[s.pos - 1] === 'correct';
+        flashKey(dom.keyboard, last, correct);
       }
     }
-  });
+  }
 
   // 退格键盘事件
   document.addEventListener('keydown', (e) => {

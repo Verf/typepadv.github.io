@@ -43,7 +43,9 @@ async function main() {
       console.error(`❌ ${t} 失败: ${e.message}`);
     }
   }
-  if (server) { server.kill(); }
+  if (server) { server.kill(); server = null; }
+  // 保险：确保端口释放（等待子进程退出）
+  await new Promise((r) => setTimeout(r, 300));
   if (failed > 0) {
     console.error(`\n${failed} 个测试失败`);
     process.exit(1);
