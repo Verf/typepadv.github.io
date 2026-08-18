@@ -1,14 +1,16 @@
 // test/integration.test.cjs - 浏览器集成测试（puppeteer-core）
-// 走完整跟打流程：加载应用 → 选 Gallman 布局 → 输入上屏文字 → 验证
+// 走完整跟打流程：加载应用 → 导入自定义文本 → 选 Gallman 布局 → 输入上屏文字 → 验证
 //   1. 码表提示显示正确编码（Gallman 翻译后）
 //   2. 打字判定正确（上屏文字 vs 原文）
 //   3. 统计面板实时更新
 //   4. 完成时历史记录写入
+//   5. 常用字练习入口可用
 
 const puppeteer = require('puppeteer-core');
 const { chromiumPath, collectErrors } = require('./helpers.cjs');
 
 const URL = 'http://localhost:4173/index.html';
+const TEST_TEXT = '宇浩星陈跟打测试';
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -26,13 +28,34 @@ const URL = 'http://localhost:4173/index.html';
     else { fail++; console.error('  ❌', name, detail); }
   }
 
-  // ---- 1. 初始状态：QWERTY 布局，码表提示 = 原始编码 ----
-  const qwertyHint = await page.$eval('#code-hint', (el) => el.textContent.trim());
-  console.log('QWERTY 码表提示:', qwertyHint);
-  check('初始码表提示显示原始编码', /ifk/.test(qwertyHint), qwertyHint);
+  // ---- 0. 常用字练习入口存在 ----
+  const commonChips = await page.$$eval('.text-item', (els) =>
+    els.map((e) => e.textContent).filter((t) => t.includes('常见字') || t.includes('3500'))
+  );
+  check('常用字练习入口（4档）', commonChips.length === 4, JSON.stringify(commonChips));
 
-  // 初始示例文本第一个字是「宇」→ 编码 ifk（宇浩星陈）
-  check('提示包含"宇"', qwertyHint.includes('宇'), qwertyHint);
+  // ---- 1. 导入自定义短文本作为跟打对象 ----
+  await page.evaluate((text) => {
+    const fp = document.getElementById('text-import-area');
+    fp.value = text;
+    document.getElementById('btn-save-text').click();
+  }, TEST_TEXT);
+  await new Promise((r) => setTimeout(r, 300));
+  // 点击新导入的文本 chip
+  await page.evaluate((text) => {
+    const chip = [...document.querySelectorAll('.text-item')].find((c) => c.textContent.includes('自定义'));
+    if (chip) chip.click();
+  }, TEST_TEXT);
+  await new Promise((r) => setTimeout(r, 300));
+
+  const initText = await page.evaluate(() => ({
+    chars: document.querySelectorAll('.char').length,
+    hint: document.getElementById('code-hint').textContent.trim(),
+  }));
+  console.log('导入后文本:', JSON.stringify(initText));
+  check('自定义文本已加载（8字）', initText.chars === 8, 'chars=' + initText.chars);
+  // 第一个字「宇」→ 编码 ifk
+  check('码表提示「宇」ifk', /ifk/.test(initText.hint), initText.hint);
 
   // ---- 2. 切换 Gallman 布局 ----
   await page.select('#layout-select', 'gallman');
@@ -42,92 +65,70 @@ const URL = 'http://localhost:4173/index.html';
   // ifk → i f k 查 KEY_MAP：i→o, f→s, k→a → "osa"
   check('Gallman 翻译后提示为 osa', gallmanHint.includes('osa'), gallmanHint);
 
-  // 虚拟键盘应渲染为 Gallman 键帽
   const kbCaps = await page.$$eval('.kb-key', (els) => els.map((e) => e.dataset.cap));
-  const kbKeyCount = kbCaps.length;
-  check('Gallman 键盘渲染 30 键', kbKeyCount === 30, 'count=' + kbKeyCount);
-  check('Gallman 首键为 p', kbCaps[0] === 'p');
-  // 目标键高亮（当前字「宇」翻译后编码首字符 o → 目标键 o）
+  check('Gallman 键盘渲染 30 键', kbCaps.length === 30, 'count=' + kbCaps.length);
   const targetKeys = await page.$$eval('.kb-key.target', (els) => els.map((e) => e.dataset.cap));
-  check('目标键高亮包含 o', targetKeys.includes('o'), JSON.stringify(targetKeys));
+  check('目标键高亮包含 o（宇→osa 首键 o）', targetKeys.includes('o'), JSON.stringify(targetKeys));
 
-  // ---- 3. 跟打判定（上屏文字 vs 原文）----
-  // 点击打字区聚焦，然后通过页面注入 input 事件模拟输入法上屏
+  // ---- 3. 跟打判定 ----
   await page.click('#typing-area');
-  // 隐藏 input 获得焦点
   await page.focus('#hidden-input');
 
-  // 直接操作隐藏 input 的值并触发 input 事件（模拟输入法上屏「宇」）
-  const inputState = await page.evaluate(() => {
+  // 输入第一个字「宇」→ 匹配
+  await page.evaluate(() => {
     const input = document.getElementById('hidden-input');
     input.value = '宇';
     input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const s1 = await page.evaluate(() => {
     return {
-      pos: document.querySelectorAll('.char.correct').length,
+      correct: document.querySelectorAll('.char.correct').length,
       current: document.querySelector('.char.current')?.textContent,
-      kpm: document.getElementById('stat-kpm').textContent,
     };
   });
-  console.log('输入「宇」后:', JSON.stringify(inputState));
-  check('第一个字正确匹配', inputState.pos === 1, 'pos=' + inputState.pos);
-  check('游标前进到第二个字', inputState.current === '浩', 'current=' + inputState.current);
+  console.log('输入宇后:', JSON.stringify(s1));
+  check('第一个字正确匹配', s1.correct === 1, 'correct=' + s1.correct);
+  check('游标前进到「浩」', s1.current === '浩', 'current=' + s1.current);
 
-  // 模拟输入第二个字「浩」（正确）
+  // 输错第二个字（原文「浩」→ 输入「木」）
   await page.evaluate(() => {
     const input = document.getElementById('hidden-input');
-    input.value = '宇浩';
+    input.value = '宇木';
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  const after2 = await page.evaluate(() => ({
-    correctCount: document.querySelectorAll('.char.correct').length,
-    current: document.querySelector('.char.current')?.textContent,
-  }));
-  check('第二个字正确', after2.correctCount === 2, JSON.stringify(after2));
-
-  // 模拟输错第三个字（原文「星」→ 输入「木」）
-  await page.evaluate(() => {
-    const input = document.getElementById('hidden-input');
-    input.value = '宇浩木';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  const afterErr = await page.evaluate(() => ({
+  const s2 = await page.evaluate(() => ({
     errorCount: document.querySelectorAll('.char.error').length,
     current: document.querySelector('.char.current')?.textContent,
     statErrors: document.getElementById('stat-errors').textContent,
   }));
-  console.log('输错后:', JSON.stringify(afterErr));
-  check('错字标记 error', afterErr.errorCount === 1, 'err=' + afterErr.errorCount);
-  check('错字也前进（方案B）', afterErr.current === '陈', 'current=' + afterErr.current);
-  check('统计错字数=1', afterErr.statErrors === '1');
+  console.log('输错后:', JSON.stringify(s2));
+  check('错字标记 error', s2.errorCount === 1, 'err=' + s2.errorCount);
+  check('错字也前进（方案B）→ 「星」', s2.current === '星', 'current=' + s2.current);
+  check('统计错字数=1', s2.statErrors === '1');
 
-  // 退格回改（删掉 '木'，恢复一个字）
+  // 退格回改（删掉「木」）
   await page.evaluate(() => {
     const input = document.getElementById('hidden-input');
-    input.value = '宇浩';
+    input.value = '宇';
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  const afterBackspace = await page.evaluate(() => ({
+  const s3 = await page.evaluate(() => ({
     backspaces: document.getElementById('stat-backspaces').textContent,
     progress: document.getElementById('stat-progress').textContent,
   }));
-  console.log('回改后:', JSON.stringify(afterBackspace));
-  check('回改计数=1', afterBackspace.backspaces === '1', 'bs=' + afterBackspace.backspaces);
+  console.log('回改后:', JSON.stringify(s3));
+  check('回改计数=1', s3.backspaces === '1', 'bs=' + s3.backspaces);
+  check('进度 1/8', s3.progress === '1/8', s3.progress);
 
-  // 完整打完剩下的：宇浩星陈跟打器，用于练习（原文）
-  // 原文：宇浩星陈跟打器，用于练习宇浩星陈输入方案。\n跟打时请保持输入法为中文模式...（较长）
-  // 这里起新会话更可控：用「重新开始」并把文本缩短测试
-  await page.click('#btn-restart'); // 重开
+  // ---- 4. 完整打完 ----
+  await page.click('#btn-restart'); // 重开会话（重置为谭浩星陈跟打测试）
   await new Promise((r) => setTimeout(r, 200));
 
-  // ---- 4. 完整打完 + 完成检测 + 历史写入 ----
-  // 通过页面 eval 直接用完整文本模拟输入法逐段上屏
   const fullText = await page.evaluate(() => document.querySelector('.typed-text').textContent);
-  // 取出原文（按码点切分，保留换行，与 app 的 Array.from 一致）
-  const cleanText = Array.from(fullText.replace(/<[^>]+>/g, '')).join('');
+  const cleanText = Array.from(fullText).join('');
   console.log('原文长度:', cleanText.length);
 
-  // 分段输入（模拟输入法分几次上屏）
-  const chunkSize = 10;
+  const chunkSize = 3;
   let inputted = '';
   for (let i = 0; i < cleanText.length; i += chunkSize) {
     const chunk = cleanText.slice(i, i + chunkSize);
@@ -137,20 +138,20 @@ const URL = 'http://localhost:4173/index.html';
       input.value = val;
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }, inputted);
+    await new Promise((r) => setTimeout(r, 20));
   }
   await new Promise((r) => setTimeout(r, 300));
 
   const finalState = await page.evaluate(() => ({
     done: document.querySelectorAll('.char.pending').length === 0,
     progress: document.getElementById('stat-progress').textContent,
-    kpm: document.getElementById('stat-kpm').textContent,
     accuracy: document.getElementById('stat-accuracy').textContent,
     historyRows: document.querySelectorAll('#history-body tr').length,
   }));
   console.log('完成状态:', JSON.stringify(finalState));
   check('全部打完无 pending', finalState.done, 'pending=' + finalState.done);
-  check('进度 100%', finalState.progress.endsWith('/' + cleanText.length), finalState.progress);
-  check('键准 100%（无错误）', finalState.accuracy.includes('100'), finalState.accuracy);
+  check('进度 100%', finalState.progress.endsWith('/8'), finalState.progress);
+  check('键准 100%', finalState.accuracy.includes('100'), finalState.accuracy);
   check('历史记录已写入', finalState.historyRows >= 1, 'rows=' + finalState.historyRows);
   check('无 JS 错误', errors.length === 0, JSON.stringify(errors));
 

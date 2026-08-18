@@ -47,8 +47,6 @@ const dom = {
   btnManageLayouts: $('#btn-manage-layouts'),
   btnImportCodetable: $('#btn-import-codetable'),
   codetableFile: $('#codetable-file'),
-  btnSelectText: $('#btn-select-text'),
-  btnImportText: $('#btn-import-text'),
   btnRestart: $('#btn-restart'),
   textList: $('#text-list'),
   textImportPanel: $('#text-import-panel'),
@@ -207,7 +205,7 @@ async function loadCodeTable(key) {
 }
 
 // ---- 文本管理 ----
-const SAMPLE_TEXT = '宇浩星陈跟打器，用于练习宇浩星陈输入方案。\n跟打时请保持输入法为中文模式，逐字输入即可。\n本工具不捕获物理按键，只校验上屏文字与原文是否一致。';
+// ---- 文本管理 ----
 
 // 常用字练习数据（按字频降序，来自 MTSU 字频统计）
 const COMMON_CHARS_URL = 'assets/code-tables/common-3500.txt';
@@ -235,10 +233,13 @@ async function loadCommonChars() {
 
 async function loadDefaultText() {
   commonChars = await loadCommonChars();
-  state.currentText = SAMPLE_TEXT;
-  state.selectedTextId = 'internal:sample';
+  // 默认加载「常见字 1-500」作为初始练习
+  const firstRange = COMMON_RANGES[0];
+  const initial = commonChars.slice(firstRange.start, firstRange.end).join('');
+  state.currentText = initial;
+  state.selectedTextId = firstRange.id;
   renderTextList();
-  startSession(SAMPLE_TEXT);
+  startSession(initial);
 }
 
 function renderTextList() {
@@ -253,7 +254,6 @@ function renderTextList() {
     }
   }
 
-  items.push({ id: 'internal:sample', name: '示例文本', content: SAMPLE_TEXT });
   // 自定义文本
   customTextStore.getAll().then((texts) => {
     for (const t of texts) {
@@ -262,11 +262,11 @@ function renderTextList() {
     dom.textList.innerHTML = '';
     let lastWasCommon = false;
     for (const item of items) {
-      // 常用字与示例/自定义之间加分组分隔
+      // 只有自定义文本时不需要分组标签；有常用字时加分组
       if (item.isCommon && !lastWasCommon) {
         appendGroupLabel('字库练习');
-      } else if (!item.isCommon && lastWasCommon) {
-        appendGroupLabel('其他文本');
+      } else if (!item.isCommon && lastWasCommon && items.some((i) => !i.isCommon)) {
+        appendGroupLabel('自定义文本');
       }
       const chip = document.createElement('span');
       chip.className = 'text-item' + (item.id === state.selectedTextId ? ' active' : '');
@@ -626,9 +626,6 @@ function bindEvents() {
   });
 
   // 文本管理
-  dom.btnImportText.addEventListener('click', () => {
-    dom.textImportPanel.open = !dom.textImportPanel.open;
-  });
   dom.btnSaveText.addEventListener('click', handleImportText);
   dom.btnUploadText.addEventListener('click', () => dom.textFile.click());
   dom.textFile.addEventListener('change', async (e) => {
