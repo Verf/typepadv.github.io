@@ -90,10 +90,10 @@ const TEST_TEXT = '宇浩星陈跟打测试';
   check('第一个字正确匹配', s1.correct === 1, 'correct=' + s1.correct);
   check('游标前进到「浩」', s1.current === '浩', 'current=' + s1.current);
 
-  // 第二个字「浩」的码表提示（应显示全部编码，逗号分隔）
+  // 第二个字「浩」的码表提示（Gallman 下：只有翻译后编码，无 qwerty 原码）
   const hint2 = await page.$eval('#code-hint', (el) => el.textContent.trim());
   console.log('「浩」提示:', hint2);
-  check('「浩」显示全部编码（含逗号）', /^浩：.+,\s*.+（.+,\s*.+）$/.test(hint2), hint2);
+  check('「浩」只显示当前布局编码（逗号分隔、无括号原码）', /^浩：qie, qiev$/.test(hint2), hint2);
 
   // 输错第二个字（原文「浩」→ 输入「木」）
   await page.evaluate(() => {

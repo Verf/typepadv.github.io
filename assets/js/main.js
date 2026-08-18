@@ -375,10 +375,8 @@ function updateCodeHint() {
   const translatedList = codes.map((code) =>
     state.layoutMap ? translateCode(code, state.layoutMap) : code
   );
-  // 逗号分隔展示；原码小字展示
-  dom.codeHint.innerHTML =
-    `${ch}：<strong>${translatedList.join(', ')}</strong>` +
-    `<small class="code-hint-raw">（${codes.join(', ')}）</small>`;
+  // 只显示当前布局下的编码（不显示 qwerty 原码）
+  dom.codeHint.innerHTML = `${ch}：<strong>${translatedList.join(', ')}</strong>`;
 }
 
 function updateTargetKey() {
