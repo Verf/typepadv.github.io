@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>宇浩星陈跟打器</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=17-27cbff1">
-  <link rel="stylesheet" href="assets/vendor/pico.min.css?v=17-27cbff1">
-  <link rel="stylesheet" href="assets/css/style.css?v=17-27cbff1">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=18-99a6833">
+  <link rel="stylesheet" href="assets/vendor/pico.min.css?v=18-99a6833">
+  <link rel="stylesheet" href="assets/css/style.css?v=18-99a6833">
 </head>
 <body>
   <div class="app-layout">
@@ -76,29 +76,27 @@
 
     <!-- ===== 右侧主体 ===== -->
     <main class="main-content">
-      <!-- 文本管理 -->
-      <section id="text-section" class="card">
-        <div class="card-header">
-          <h2>跟打文本</h2>
-          <div class="card-actions">
-            <button id="btn-restart" class="outline">重新开始</button>
-          </div>
-        </div>
-        <div id="text-list" class="text-list"></div>
-        <details id="text-import-panel">
-          <summary>＋ 导入自定义文本（粘贴或上传）</summary>
-          <textarea id="text-import-area" rows="3" placeholder="粘贴文本，支持换行/分段"></textarea>
-          <div class="import-actions">
-            <button id="btn-save-text">保存文本</button>
-            <input type="file" id="text-file" accept=".txt" hidden>
-            <button id="btn-upload-text" class="secondary outline">上传 .txt 文件</button>
-          </div>
-        </details>
-      </section>
-
-      <!-- 跟打区（中间主体） -->
+      <!-- 跟打区（含文本选择，紧凑布局） -->
       <section id="typing-section" class="card typing-card">
         <div class="typing-bar">
+          <div class="typing-left">
+            <details id="text-select-panel" class="text-select-panel">
+              <summary id="btn-select-text-summary">📄 跟打文本 <span class="current-text-name" id="current-text-name"></span></summary>
+              <div class="text-select-dropdown">
+                <div id="text-list" class="text-list"></div>
+                <details id="text-import-panel">
+                  <summary>＋ 导入自定义文本</summary>
+                  <textarea id="text-import-area" rows="2" placeholder="粘贴文本，支持换行/分段"></textarea>
+                  <div class="import-actions">
+                    <button id="btn-save-text">保存文本</button>
+                    <input type="file" id="text-file" accept=".txt" hidden>
+                    <button id="btn-upload-text" class="secondary outline">上传 .txt 文件</button>
+                  </div>
+                </details>
+              </div>
+            </details>
+            <button id="btn-restart" class="outline btn-tiny">重新开始</button>
+          </div>
           <span class="typing-pagination" id="typing-pagination"></span>
           <label class="page-size-select">
             每页
@@ -116,7 +114,7 @@
         <div class="code-hint" id="code-hint"></div>
       </section>
 
-      <!-- 虚拟键盘（右侧下方） -->
+      <!-- 虚拟键盘（右侧下方，占剩余空间） -->
       <section id="keyboard-section" class="card">
         <h2>虚拟键盘</h2>
         <div id="virtual-keyboard" class="virtual-keyboard"></div>
@@ -140,6 +138,6 @@
     </article>
   </dialog>
 
-  <script type="module" src="assets/js/main.js?v=17-27cbff1"></script>
+  <script type="module" src="assets/js/main.js?v=18-99a6833"></script>
 </body>
 </html>

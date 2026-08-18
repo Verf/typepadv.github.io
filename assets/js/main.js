@@ -8,6 +8,7 @@ import {
   CUSTOM_LAYOUTS_KEY,
 } from './layout.js';
 import { renderKeyboard, setTargetKey, flashKey, clearKeyStates } from './keyboard.js';
+import { loadZigenData, renderZigenOnKeyboard, clearZigen } from './roots.js';
 import { TypingController } from './typing.js';
 import * as stats from './stats.js';
 
@@ -27,12 +28,14 @@ const state = {
     fingerColor: true,
     showCodeHint: true,
     pageSize: 20, // 跟打区每页字数（0 = 全部）
+    showZigen: true, // 虚拟键盘键面显示字根图
   },
   currentText: null,
   layoutMap: null,      // 当前布局的翻译映射（null = qwerty 不翻译）
   currentCodeTable: null, // { charToCodes, direction }
   customLayouts: [],    // [{id, name, map}]
   selectedTextId: null,
+  selectedTextName: '常见字 1-500',
   lastCursorPage: null, // 上次渲染的光标所在页（用于检测输入翻页）
   viewPage: null,       // 手动查看的页码（null = 跟随光标）
 };
@@ -61,6 +64,8 @@ const dom = {
   codetableFile: $('#codetable-file'),
   btnRestart: $('#btn-restart'),
   textList: $('#text-list'),
+  currentTextName: $('#current-text-name'),
+  textSelectPanel: $('#text-select-panel'),
   textImportPanel: $('#text-import-panel'),
   textImportArea: $('#text-import-area'),
   btnSaveText: $('#btn-save-text'),
@@ -107,6 +112,10 @@ async function init() {
   await loadDefaultText();
   renderHistory();
   await loadCodeTable(state.settings.codetable);
+  // 字根数据异步加载，完成后重绘键盘（可能尚未显示）
+  loadZigenData().then(() => {
+    renderKeyboardDefault(); // 重新渲染键盘（含字根）
+  });
 }
 
 // ---- 设置管理 ----
@@ -185,6 +194,8 @@ function applyLayout() {
 
 function renderKeyboardDefault() {
   renderKeyboard(dom.keyboard, state.settings.layout, getLayoutRows(state.settings.layout));
+  // 渲染字根图（星陈方案时在键面显示字根）
+  renderZigenOnKeyboard(dom.keyboard, state.layoutMap, state.settings.showZigen);
 }
 
 // ---- 码表 ----
@@ -258,8 +269,16 @@ async function loadDefaultText() {
   const initial = commonChars.slice(firstRange.start, firstRange.end).join('');
   state.currentText = initial;
   state.selectedTextId = firstRange.id;
+  state.selectedTextName = firstRange.name;
   renderTextList();
+  updateCurrentTextName();
   startSession(initial);
+}
+
+function updateCurrentTextName() {
+  if (dom.currentTextName && state.selectedTextName) {
+    dom.currentTextName.textContent = state.selectedTextName;
+  }
 }
 
 function renderTextList() {
@@ -294,8 +313,12 @@ function renderTextList() {
       chip.addEventListener('click', () => {
         state.currentText = item.content;
         state.selectedTextId = item.id;
+        state.selectedTextName = item.name;
         renderTextList();
+        updateCurrentTextName();
         startSession(item.content);
+        // 选择后关闭下拉
+        if (dom.textSelectPanel) dom.textSelectPanel.open = false;
       });
       dom.textList.appendChild(chip);
       lastWasCommon = item.isCommon;
