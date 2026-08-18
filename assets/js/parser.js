@@ -105,6 +105,16 @@ export function lookupCode(parsedTable, ch, index = 0) {
 }
 
 /**
+ * 查询单字的全部编码（简码+全码数组，保持码表顺序）。
+ * @returns {string[] | null} 全部编码数组；无则 null
+ */
+export function lookupAllCodes(parsedTable, ch) {
+  const codes = parsedTable.charToCodes.get(ch);
+  if (!codes || codes.length === 0) return null;
+  return codes;
+}
+
+/**
  * 判断文本是否为码表可用的内容（含至少一个汉字）。
  */
 export function hasHan(text) {

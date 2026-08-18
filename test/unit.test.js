@@ -70,6 +70,12 @@ async function importESM(rel) {
     assert.strictEqual(parser.lookupCode(p, '就', 1), 'a');
     assert.strictEqual(parser.lookupCode(p, '不存在'), null);
   });
+  t('lookupAllCodes 返回全部编码', () => {
+    const p = parser.parseCodeTable('d\t的\ndwkd\t的\na\t就');
+    assert.deepStrictEqual(parser.lookupAllCodes(p, '的'), ['d', 'dwkd']);
+    assert.deepStrictEqual(parser.lookupAllCodes(p, '就'), ['a']);
+    assert.strictEqual(parser.lookupAllCodes(p, '无此字'), null);
+  });
 
   // ===== layout 测试 =====
   console.log('\n[layout] 键盘布局与翻译');

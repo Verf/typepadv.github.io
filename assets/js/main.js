@@ -1,7 +1,7 @@
 // main.js - 应用入口：串起存储/码表/布局/跟打/键盘/统计/历史
 
 import { ls, idb, codeTableStore, customTextStore } from './storage.js';
-import { parseCodeTable, lookupCode } from './parser.js';
+import { parseCodeTable, lookupCode, lookupAllCodes } from './parser.js';
 import {
   BUILTIN_LAYOUTS, GALLMAN_ROWS, QWERTY_ROWS, KEY_MAP,
   translateCode, gallmanMap, buildLayoutMap, fingerFor,
@@ -361,16 +361,24 @@ function updateCodeHint() {
   }
   const ch = s.text[s.pos];
   if (!ch) { dom.codeHint.textContent = ''; return; }
-  let code = null;
-  if (state.currentCodeTable) {
-    code = lookupCode(state.currentCodeTable, ch);
+  if (!state.currentCodeTable) {
+    dom.codeHint.textContent = ch + '：码表未加载';
+    return;
   }
-  if (!code) {
+  // 全部编码（简码+全码）
+  const codes = lookupAllCodes(state.currentCodeTable, ch);
+  if (!codes || codes.length === 0) {
     dom.codeHint.textContent = ch + '：无编码';
     return;
   }
-  const translated = state.layoutMap ? translateCode(code, state.layoutMap) : code;
-  dom.codeHint.innerHTML = `${ch}：<strong>${translated}</strong> <small>(${code})</small>`;
+  // 翻译每个编码到当前布局
+  const translatedList = codes.map((code) =>
+    state.layoutMap ? translateCode(code, state.layoutMap) : code
+  );
+  // 逗号分隔展示；原码小字展示
+  dom.codeHint.innerHTML =
+    `${ch}：<strong>${translatedList.join(', ')}</strong>` +
+    `<small class="code-hint-raw">（${codes.join(', ')}）</small>`;
 }
 
 function updateTargetKey() {
