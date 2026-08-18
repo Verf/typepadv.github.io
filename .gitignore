@@ -1,1 +1,5 @@
 .env
+node_modules/
+.piclaw-cache/
+test/artifacts/
+public_placeholder
