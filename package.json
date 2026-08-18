@@ -6,7 +6,9 @@
   "scripts": {
     "test": "node test/run.cjs",
     "test:unit": "node test/unit.test.js",
-    "test:smoke": "node test/run.cjs"
+    "test:smoke": "node test/run.cjs",
+    "deploy": "node deploy.mjs",
+    "version": "node build-version.mjs"
   },
   "repository": {
     "type": "git",
