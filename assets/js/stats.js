@@ -107,32 +107,36 @@ export function computeStats(s, now) {
   const minutes = Math.max(elapsedSec / 60, 1e-9);
   const totalChars = s.text.length;
 
-  // 正确字符（最终态 correct）
+  // 字符最终态统计
   let correctCount = 0;
   let backspacedCount = 0;
-  let errorCount = 0;
+  let errorRemainCount = 0; // 留在文中的未回改错字
   for (const st of s.charStates) {
     if (st === 'correct') correctCount++;
-    else if (st === 'error') errorCount++;
+    else if (st === 'error') errorRemainCount++;
     else if (st === 'backspaced') backspacedCount++;
   }
   const typedCount = Math.min(s.pos, totalChars);
   const kpm = Math.round((s.keystrokes / minutes) * 10) / 10;
-  // 键准（无回改率）：未回改字符中正确比例；无输入时为 100%
-  const noBackspace = totalChars - backspacedCount;
-  const accuracy = noBackspace > 0 ? Math.round((correctCount / noBackspace) * 1000) / 10 : 100;
-  const errorRate = totalChars > 0 ? Math.round((errorCount / totalChars) * 1000) / 10 : 0;
+  // 净速（字数/分钟）：打完全部的字符数 / 分钟
+  const netKpm = Math.round((typedCount / minutes) * 10) / 10;
+  // 键准（中文社群标准）：回改过的错字不算错，(总字符 - 未回改错误数) / 总字符
+  const accuracy = totalChars > 0 ? Math.round(((totalChars - errorRemainCount) / totalChars) * 1000) / 10 : 100;
+  // 错字率（首次上屏错误率）：(回改次数 + 未回改错误数) / 总字符
+  const errorRate = totalChars > 0 ? Math.round(((s.backspaces + errorRemainCount) / totalChars) * 1000) / 10 : 0;
   const progress = totalChars > 0 ? Math.round((typedCount / totalChars) * 1000) / 10 : 0;
   const done = typedCount >= totalChars;
 
   return {
     kpm,
+    netKpm,
     accuracy,
     errorRate,
     backspaces: s.backspaces,
     elapsedSec: Math.round(elapsedSec * 10) / 10,
     correctCount,
-    errorCount,
+    errorCount: errorRemainCount,
+    errorRemainCount,
     backspacedCount,
     typedCount,
     totalChars,

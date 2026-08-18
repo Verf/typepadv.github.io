@@ -59,6 +59,7 @@ const dom = {
   keyboard: $('#virtual-keyboard'),
   statTime: $('#stat-time'),
   statKpm: $('#stat-kpm'),
+  statNetkpm: $('#stat-netkpm'),
   statAccuracy: $('#stat-accuracy'),
   statBackspaces: $('#stat-backspaces'),
   statErrors: $('#stat-errors'),
@@ -279,6 +280,7 @@ function renderTyping(session) {
   const st = stats.computeStats(session, Date.now());
   dom.statTime.textContent = st.elapsedSec.toFixed(1) + 's';
   dom.statKpm.textContent = st.kpm;
+  dom.statNetkpm.textContent = st.netKpm;
   dom.statAccuracy.textContent = st.accuracy + '%';
   dom.statBackspaces.textContent = st.backspaces;
   dom.statErrors.textContent = st.errorCount;
@@ -327,6 +329,7 @@ function onSessionFinish(finalStats) {
     time: Date.now(),
     textName: state.selectedTextId || 'unknown',
     kpm: finalStats.kpm,
+    netKpm: finalStats.netKpm,
     accuracy: finalStats.accuracy,
     errorRate: finalStats.errorRate,
     backspaces: finalStats.backspaces,
@@ -345,7 +348,7 @@ function renderHistory() {
   const history = ls.get('history', []);
   dom.historyBody.innerHTML = '';
   if (history.length === 0) {
-    dom.historyBody.innerHTML = '<tr><td colspan="7">暂无历史记录</td></tr>';
+    dom.historyBody.innerHTML = '<tr><td colspan="8">暂无历史记录</td></tr>';
     return;
   }
   for (const h of history) {
@@ -355,6 +358,7 @@ function renderHistory() {
       <td>${time}</td>
       <td class="text-preview" title="${h.textName}">${h.textName}</td>
       <td>${h.kpm}</td>
+      <td>${h.netKpm ?? '-'}</td>
       <td>${h.accuracy}%</td>
       <td>${h.errorRate}%</td>
       <td>${h.backspaces}</td>
