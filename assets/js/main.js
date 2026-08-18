@@ -123,12 +123,19 @@ async function init() {
   if (state.settings.showChaifen) {
     loadChaifenData().catch(() => {});
   }
-  // 首次进入自动聚焦输入框（若用户尚未点击任何按钮/下拉）
-  requestAnimationFrame(() => {
+  // 首次进入自动聚焦输入框（页面加载完成后；若用户已点击其它控件则不打扰）
+  const focusInputOnce = () => {
+    const el = document.getElementById('hidden-input');
+    if (!el) return;
     if (document.activeElement === document.body || !document.activeElement) {
-      document.getElementById('hidden-input')?.focus({ preventScroll: true });
+      el.focus({ preventScroll: true });
     }
-  });
+  };
+  if (document.readyState === 'complete') {
+    setTimeout(focusInputOnce, 200);
+  } else {
+    window.addEventListener('load', () => setTimeout(focusInputOnce, 200), { once: true });
+  }
 }
 
 // ---- 设置管理 ----
