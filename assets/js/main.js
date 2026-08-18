@@ -123,6 +123,12 @@ async function init() {
   if (state.settings.showChaifen) {
     loadChaifenData().catch(() => {});
   }
+  // 首次进入自动聚焦输入框（若用户尚未点击任何按钮/下拉）
+  requestAnimationFrame(() => {
+    if (document.activeElement === document.body || !document.activeElement) {
+      document.getElementById('hidden-input')?.focus({ preventScroll: true });
+    }
+  });
 }
 
 // ---- 设置管理 ----
@@ -672,6 +678,30 @@ function bindEvents() {
     input.focus({ preventScroll: true });
     input.value = '';
     controller.session && Object.assign(controller.session, { lastLen: 0, lastValue: '' });
+  });
+
+  // 自动聚焦：切回本页/切换到窗口时直接可输入，无需再点输入区
+  const autoFocus = () => {
+    // 避免在弹层/对话框打开时抢焦点
+    if (document.querySelector('dialog[open]')) return;
+    // 拆分下拉等面板打开时不抢（用户可能在点选）
+    if (dom.textSelectPanel && dom.textSelectPanel.open) return;
+    // 已聚焦输入框则不重复处理
+    if (document.activeElement === input) return;
+    input.focus({ preventScroll: true });
+  };
+  // 页面重新可见（从其他标签/最小化切回）
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // 延迟一拍，等页面激活完成
+      setTimeout(autoFocus, 30);
+    }
+  });
+  // 窗口重新获得焦点（从其他应用/窗口切回，且之前页面没有焦点元素）
+  window.addEventListener('focus', () => {
+    if (!document.hasFocus()) return; // 尚未激活时忽略
+    if (document.activeElement && document.activeElement !== document.body) return; // 已有聚焦元素（按钮/输入框）不抢
+    setTimeout(autoFocus, 30);
   });
 
   // IME 组合态：composing 期间的 input 不计数（避免重复统计）
