@@ -348,21 +348,19 @@ function renderHistory() {
   const history = ls.get('history', []);
   dom.historyBody.innerHTML = '';
   if (history.length === 0) {
-    dom.historyBody.innerHTML = '<tr><td colspan="8">暂无历史记录</td></tr>';
+    dom.historyBody.innerHTML = '<tr><td colspan="6">暂无历史记录</td></tr>';
     return;
   }
   for (const h of history) {
     const tr = document.createElement('tr');
-    const time = new Date(h.time).toLocaleString();
+    const time = new Date(h.time).toLocaleDateString() + ' ' + new Date(h.time).toLocaleTimeString().slice(0, 5);
     tr.innerHTML = `
-      <td>${time}</td>
+      <td title="${new Date(h.time).toLocaleString()}">${time}</td>
       <td class="text-preview" title="${h.textName}">${h.textName}</td>
       <td>${h.kpm}</td>
-      <td>${h.netKpm ?? '-'}</td>
       <td>${h.accuracy}%</td>
       <td>${h.errorRate}%</td>
-      <td>${h.backspaces}</td>
-      <td>${h.elapsedSec}s</td>`;
+      <td>${h.backspaces}</td>`;
     dom.historyBody.appendChild(tr);
   }
 }

@@ -9,106 +9,114 @@
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <main class="container">
-    <header>
-      <h1>宇浩星陈跟打器</h1>
-      <p class="subtitle">练习宇浩星陈输入方案 · 支持自定义文本 / 码表 / 键盘布局</p>
-    </header>
+  <div class="app-layout">
+    <!-- ===== 左侧栏 ===== -->
+    <aside class="sidebar">
+      <header class="app-header">
+        <h1>宇浩星陈跟打器</h1>
+        <p class="subtitle">练习宇浩星陈输入方案</p>
+      </header>
 
-    <!-- 设置栏 -->
-    <section id="toolbar" class="toolbar">
-      <details id="settings-panel">
-        <summary>⚙ 设置</summary>
-        <div class="settings-grid">
-          <label>键盘布局
-            <select id="layout-select"></select>
-          </label>
-          <label>提示码表
-            <select id="codetable-select"></select>
-          </label>
-          <label>指法着色
-            <input type="checkbox" id="finger-color" checked>
-          </label>
-          <label>显示码表提示
-            <input type="checkbox" id="show-code-hint" checked>
-          </label>
+      <!-- 实时统计（左上） -->
+      <section id="stats-section" class="panel">
+        <div class="panel-title">实时统计</div>
+        <div class="stats-grid">
+          <div class="stat"><span class="stat-label">用时</span><span class="stat-value stat-time" id="stat-time">0.0s</span></div>
+          <div class="stat"><span class="stat-label">KPM</span><span class="stat-value" id="stat-kpm">0</span></div>
+          <div class="stat"><span class="stat-label">净速</span><span class="stat-value" id="stat-netkpm">0</span></div>
+          <div class="stat"><span class="stat-label">键准</span><span class="stat-value" id="stat-accuracy">100%</span></div>
+          <div class="stat"><span class="stat-label">回改</span><span class="stat-value" id="stat-backspaces">0</span></div>
+          <div class="stat"><span class="stat-label">错字</span><span class="stat-value" id="stat-errors">0</span></div>
+          <div class="stat"><span class="stat-label">进度</span><span class="stat-value" id="stat-progress">0/0</span></div>
         </div>
-        <div class="settings-actions">
-          <button id="btn-manage-layouts" class="secondary outline">管理键盘布局</button>
-          <button id="btn-import-codetable" class="secondary outline">导入码表</button>
+      </section>
+
+      <!-- 设置折叠（左上下方） -->
+      <section class="panel">
+        <details id="settings-panel">
+          <summary>⚙ 设置</summary>
+          <div class="settings-grid">
+            <label>键盘布局
+              <select id="layout-select"></select>
+            </label>
+            <label>提示码表
+              <select id="codetable-select"></select>
+            </label>
+            <label class="checkbox-line">指法着色
+              <input type="checkbox" id="finger-color" checked>
+            </label>
+            <label class="checkbox-line">显示码表提示
+              <input type="checkbox" id="show-code-hint" checked>
+            </label>
+          </div>
+          <div class="settings-actions">
+            <button id="btn-manage-layouts" class="secondary outline">管理布局</button>
+            <button id="btn-import-codetable" class="secondary outline">导入码表</button>
+          </div>
+          <input type="file" id="codetable-file" accept=".txt,.dict" hidden>
+        </details>
+      </section>
+
+      <!-- 历史记录（左下） -->
+      <section id="history-section" class="panel">
+        <div class="panel-title">
+          历史记录
+          <button id="btn-clear-history" class="secondary outline btn-tiny">清空</button>
         </div>
-        <input type="file" id="codetable-file" accept=".txt,.dict" hidden>
-      </details>
-    </section>
-
-    <!-- 文本管理 -->
-    <section id="text-section" class="card">
-      <div class="card-header">
-        <h2>跟打文本</h2>
-        <div class="card-actions">
-          <button id="btn-select-text" class="outline">选择文本</button>
-          <button id="btn-import-text" class="outline">导入文本</button>
-          <button id="btn-restart" class="outline">重新开始</button>
+        <div class="history-scroll">
+          <table>
+            <thead>
+              <tr><th>时间</th><th>文本</th><th>KPM</th><th>键准</th><th>错字率</th><th>回改</th></tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
         </div>
-      </div>
-      <div id="text-list" class="text-list"></div>
-      <details id="text-import-panel">
-        <summary>导入自定义文本</summary>
-        <textarea id="text-import-area" rows="6" placeholder="粘贴文本，支持换行/分段"></textarea>
-        <div>
-          <button id="btn-save-text">保存文本</button>
-          <input type="file" id="text-file" accept=".txt" hidden>
-          <button id="btn-upload-text" class="secondary outline">上传 .txt 文件</button>
+      </section>
+    </aside>
+
+    <!-- ===== 右侧主体 ===== -->
+    <main class="main-content">
+      <!-- 文本管理 -->
+      <section id="text-section" class="card">
+        <div class="card-header">
+          <h2>跟打文本</h2>
+          <div class="card-actions">
+            <button id="btn-select-text" class="outline" hidden>选择文本</button>
+            <button id="btn-import-text" class="outline">导入文本</button>
+            <button id="btn-restart" class="outline">重新开始</button>
+          </div>
         </div>
-      </details>
-    </section>
+        <div id="text-list" class="text-list"></div>
+        <details id="text-import-panel">
+          <summary>导入自定义文本</summary>
+          <textarea id="text-import-area" rows="3" placeholder="粘贴文本，支持换行/分段"></textarea>
+          <div class="import-actions">
+            <button id="btn-save-text">保存文本</button>
+            <input type="file" id="text-file" accept=".txt" hidden>
+            <button id="btn-upload-text" class="secondary outline">上传 .txt 文件</button>
+          </div>
+        </details>
+      </section>
 
-    <!-- 跟打区 -->
-    <section id="typing-section" class="card">
-      <div class="typing-area" id="typing-area" tabindex="0">
-        <div id="typed-text" class="typed-text"></div>
-      </div>
-      <div class="code-hint" id="code-hint"></div>
-    </section>
+      <!-- 跟打区（中间主体） -->
+      <section id="typing-section" class="card typing-card">
+        <div class="typing-area" id="typing-area" tabindex="0">
+          <div id="typed-text" class="typed-text"></div>
+        </div>
+        <div class="code-hint" id="code-hint"></div>
+      </section>
 
-    <!-- 虚拟键盘 -->
-    <section id="keyboard-section" class="card">
-      <h2>虚拟键盘</h2>
-      <div id="virtual-keyboard" class="virtual-keyboard"></div>
-    </section>
+      <!-- 虚拟键盘（右侧下方） -->
+      <section id="keyboard-section" class="card">
+        <h2>虚拟键盘</h2>
+        <div id="virtual-keyboard" class="virtual-keyboard"></div>
+      </section>
+    </main>
+  </div>
 
-    <!-- 统计面板 -->
-    <section id="stats-section" class="card">
-      <h2>实时统计</h2>
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat"><span class="stat-label">用时</span><span class="stat-value" id="stat-time">0.0s</span></div>
-        <div class="stat"><span class="stat-label">KPM</span><span class="stat-value" id="stat-kpm">0</span></div>
-        <div class="stat"><span class="stat-label">净速</span><span class="stat-value" id="stat-netkpm">0</span></div>
-        <div class="stat"><span class="stat-label">键准</span><span class="stat-value" id="stat-accuracy">100%</span></div>
-        <div class="stat"><span class="stat-label">回改</span><span class="stat-value" id="stat-backspaces">0</span></div>
-        <div class="stat"><span class="stat-label">错字</span><span class="stat-value" id="stat-errors">0</span></div>
-        <div class="stat"><span class="stat-label">进度</span><span class="stat-value" id="stat-progress">0/0</span></div>
-      </div>
-    </section>
-
-    <!-- 历史记录 -->
-    <section id="history-section" class="card">
-      <h2>历史记录</h2>
-      <button id="btn-clear-history" class="secondary outline">清空历史</button>
-      <table>
-        <thead>
-          <tr>
-            <th>时间</th><th>文本</th><th>KPM</th><th>净速</th><th>键准</th><th>错字率</th><th>回改</th><th>用时</th>
-          </tr>
-        </thead>
-        <tbody id="history-body"></tbody>
-      </table>
-    </section>
-
-    <footer>
-      <small>宇浩星陈跟打器 · MIT License · <a href="https://shurufa.app/zht/learn/roots.html" target="_blank">宇浩星陈学习</a></small>
-    </footer>
-  </main>
+  <footer class="app-footer">
+    <small>宇浩星陈跟打器 · MIT License · <a href="https://shurufa.app/zht/learn/roots.html" target="_blank">宇浩星陈学习</a></small>
+  </footer>
 
   <!-- 布局编辑器模态框 -->
   <dialog id="layout-editor">
