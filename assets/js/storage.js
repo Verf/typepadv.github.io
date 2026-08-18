@@ -3,11 +3,12 @@
 // IndexedDB: 用户上传码表、自定义文本、码表解析缓存（大数据）
 
 const DB_NAME = 'typepadv';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORES = {
   codeTables: 'codeTables',   // 用户上传码表 {key: string, name, content, direction}
   customTexts: 'customTexts', // 自定义文本 {id, name, content, createdAt}
   codeCache: 'codeCache',     // 码表解析缓存 {key, parsed, direction}
+  chaifenCache: 'chaifenCache', // 字根拆分表缓存 {key, data}
 };
 
 let _dbPromise = null;
@@ -26,6 +27,9 @@ function openDB() {
       }
       if (!db.objectStoreNames.contains(STORES.codeCache)) {
         db.createObjectStore(STORES.codeCache, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(STORES.chaifenCache)) {
+        db.createObjectStore(STORES.chaifenCache, { keyPath: 'key' });
       }
     };
     req.onsuccess = () => resolve(req.result);

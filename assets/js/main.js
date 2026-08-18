@@ -9,6 +9,7 @@ import {
 } from './layout.js';
 import { renderKeyboard, setTargetKey, flashKey, clearKeyStates } from './keyboard.js';
 import { loadZigenData, renderZigenOnKeyboard, clearZigen } from './roots.js';
+import { loadChaifenData, getChaifen, translateChaifenCode } from './chaifen.js';
 import { TypingController } from './typing.js';
 import * as stats from './stats.js';
 
@@ -29,6 +30,7 @@ const state = {
     showCodeHint: true,
     pageSize: 20, // 跟打区每页字数（0 = 全部）
     showZigen: true, // 虚拟键盘键面显示字根图
+    showChaifen: true, // 码表提示附加字根拆分
   },
   currentText: null,
   layoutMap: null,      // 当前布局的翻译映射（null = qwerty 不翻译）
@@ -59,6 +61,7 @@ const dom = {
   codetableSelect: $('#codetable-select'),
   fingerColor: $('#finger-color'),
   showCodeHint: $('#show-code-hint'),
+  showChaifen: $('#show-chaifen'),
   btnManageLayouts: $('#btn-manage-layouts'),
   btnImportCodetable: $('#btn-import-codetable'),
   codetableFile: $('#codetable-file'),
@@ -116,6 +119,10 @@ async function init() {
   loadZigenData().then(() => {
     renderKeyboardDefault(); // 重新渲染键盘（含字根）
   });
+  // 字根拆分数据后台预加载（首次 1.2MB gzip，之后走 IndexedDB）
+  if (state.settings.showChaifen) {
+    loadChaifenData().catch(() => {});
+  }
 }
 
 // ---- 设置管理 ----
@@ -133,6 +140,7 @@ function renderSettings() {
   dom.codetableSelect.value = state.settings.codetable;
   dom.fingerColor.checked = state.settings.fingerColor;
   dom.showCodeHint.checked = state.settings.showCodeHint;
+  dom.showChaifen.checked = state.settings.showChaifen !== false;
   dom.pageSizeSelect.value = String(state.settings.pageSize ?? 20);
 }
 
@@ -451,7 +459,40 @@ function updateCodeHint() {
     state.layoutMap ? translateCode(code, state.layoutMap) : code
   );
   // 只显示当前布局下的编码（不显示 qwerty 原码）
+  if (!state.settings.showChaifen) {
+    dom.codeHint.innerHTML = `${ch}：<strong>${translatedList.join(', ')}</strong>`;
+    return;
+  }
+  // 追加字根拆分（异步查拆分表）
   dom.codeHint.innerHTML = `${ch}：<strong>${translatedList.join(', ')}</strong>`;
+  const hintEl = dom.codeHint;
+  let cancelled = false;
+  updateChaifenHint(ch, translatedList).then((extra) => {
+    if (!cancelled && hintEl === dom.codeHint) {
+      hintEl.innerHTML = `${ch}：<strong>${translatedList.join(', ')}</strong> ${extra}`;
+    }
+  });
+  // 后续渲染会替换 codeHint 内容，标记取消避免写旧值
+  const prevSet = dom.codeHint._chaifenCleanup;
+  if (typeof prevSet === 'function') prevSet();
+  dom.codeHint._chaifenCleanup = () => { cancelled = true; };
+}
+
+/** 查拆分表并渲染拆分提示（异步） */
+async function updateChaifenHint(ch, translatedList) {
+  try {
+    const info = await getChaifen(ch);
+    if (!info) return '';
+    const splitEncoded = info.split.split('').map((r) =>
+      `<span class="chaifen-root" title="${r}">${r}</span>`
+    ).join('');
+    const codeEncoded = translateChaifenCode(info.code, state.layoutMap);
+    return `<span class="chaifen-sep">｜</span><span class="chaifen-label">拆</span>` +
+           `<span class="chaifen-split">${splitEncoded}</span>` +
+           `<span class="chaifen-code">${codeEncoded}</span>`;
+  } catch {
+    return '';
+  }
 }
 
 function updateTargetKey() {
@@ -696,6 +737,13 @@ function bindEvents() {
     state.settings.showCodeHint = dom.showCodeHint.checked;
     saveSettings();
     updateCodeHint();
+  });
+  dom.showChaifen.addEventListener('change', () => {
+    state.settings.showChaifen = dom.showChaifen.checked;
+    saveSettings();
+    updateCodeHint();
+    // 打开时确保拆分数据已加载
+    if (dom.showChaifen.checked) loadChaifenData().catch(() => {});
   });
   // 分页大小切换
   dom.pageSizeSelect.addEventListener('change', () => {

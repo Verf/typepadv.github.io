@@ -298,6 +298,28 @@ body { min-height: 100vh; }
   color: var(--accent);
   padding: 0.2rem 0.5rem;
   border-top: 1px dashed var(--card-border-color);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+/* 字根拆分提示 */
+.chaifen-sep { color: var(--muted-color); letter-spacing: 0; }
+.chaifen-label {
+  font-size: 0.75rem; color: var(--muted-color);
+  border: 1px solid var(--card-border-color);
+  border-radius: 3px; padding: 0 0.2rem;
+  letter-spacing: 0;
+}
+.chaifen-split {
+  font-family: 'Yuniversus', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  font-size: 1.1rem; letter-spacing: 3px;
+  color: #374151;
+}
+.chaifen-root { display: inline-block; }
+.chaifen-code {
+  font-size: 0.85rem; color: var(--muted-color);
+  letter-spacing: 1px;
 }
 
 /* ===== 虚拟键盘 ===== */
