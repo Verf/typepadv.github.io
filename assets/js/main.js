@@ -35,7 +35,14 @@ const state = {
 };
 
 // ---- DOM 引用 ----
-const $ = (sel) => document.querySelector(sel);
+// 防御：找不到元素时记录清晰错误，避免 "null.addEventListener" 类崩溃
+function $(sel) {
+  const el = document.querySelector(sel);
+  if (!el) {
+    console.error('[DOM] 元素不存在: ' + sel + '（可能是缓存了旧版 JS，请强制刷新 Ctrl+Shift+R）');
+  }
+  return el;
+}
 const dom = {
   typingArea: $('#typing-area'),
   typedText: $('#typed-text'),
@@ -78,6 +85,13 @@ const controller = new TypingController({
 
 // ---- 初始化 ----
 async function init() {
+  // 关键元素检查（防缓存不匹配导致白屏）
+  const required = ['typing-area', 'layout-select', 'text-list', 'virtual-keyboard', 'code-hint'];
+  for (const id of required) {
+    if (!document.getElementById(id)) {
+      throw new Error('页面结构异常：缺少 #' + id + '，请强制刷新（Ctrl+Shift+R）后重试');
+    }
+  }
   await loadSettings();
   await loadCustomLayouts();
   await populateLayoutOptions();

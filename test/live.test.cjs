@@ -33,7 +33,7 @@ const LIVE_URL = process.argv[2] || 'https://verf.github.io/typepadv.github.io/'
   check('页面标题正确', result.title.includes('跟打器'));
   check('虚拟键盘渲染', result.kbKeys > 0);
   check('跟打文本渲染', result.chars > 0);
-  check('码表加载且编码正确', /ifk/.test(result.codeHint));
+  check('码表加载且编码正确', /的：d/.test(result.codeHint));
   check('布局选项含 QWERTY+Gallman', result.layoutOptions.length >= 2);
   check('无 JS/HTTP 错误', errors.length === 0);
 
