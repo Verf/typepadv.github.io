@@ -1,18 +1,22 @@
-// roots.js - 宇浩星陈字根图：在虚拟键盘键面上渲染字根网格
-// 数据源：assets/data/zigen-star.json（来自官方 shurufa.app/zigen-star.csv）
-// 结构：{ "A": [{f: 字根, s: 小码}, ...], ... } 大码 A-Y（无 Z，Z 官网为空键）
+// roots.js - 字根图：在虚拟键盘键面上渲染字根网格（按方案多源）
+// 星陈数据源：assets/data/zigen-star.json（397字根，26键A-Y，Z为空）
+//   结构：{ "A": [{f: 字根, s: 小码}, ...], ... } 大码 A-Y
+// 灵铭数据源：assets/data/zigen-ling.json（238字根，20个Gallman辅音键）
+//   结构：{ "p": [{f: 字根, s: 声韵}, ...], ... } 键帽=Gallman物理键
 
 import { QWERTY_ROWS } from './layout.js';
 
-const ZIGEN_URL = 'assets/data/zigen-star.json';
+let zigenCache = null; // { 键: [{f,s}], ... }
+let currentUrl = null;
 
-let zigenCache = null; // { A: [{f,s}], ... }
-
-/** 加载字根数据（幂等，带缓存） */
-export async function loadZigenData() {
-  if (zigenCache) return zigenCache;
+/** 加载字根数据（幂等；url 变化时重新加载） */
+export async function loadZigenData(url) {
+  if (!url) return null;
+  if (currentUrl === url && zigenCache) return zigenCache;
+  currentUrl = url;
+  zigenCache = null;
   try {
-    const resp = await fetch(ZIGEN_URL);
+    const resp = await fetch(url);
     zigenCache = await resp.json();
   } catch (e) {
     console.warn('字根数据加载失败', e);
@@ -22,33 +26,17 @@ export async function loadZigenData() {
 }
 
 /**
- * 把大码字母翻译为当前布局键帽。
- * @param {string} big 大码字母（A-Z）
- * @param {object} layoutMap qwerty→目标 映射（null = qwerty 不翻译）
- */
-function translateBig(big, layoutMap) {
-  if (!layoutMap) return big.toUpperCase();
-  const m = layoutMap[big.toLowerCase()];
-  return (m || big).toUpperCase();
-}
-
-/**
- * 小码翻译（单字母 → 布局键帽）。
- */
-function translateSmall(small, layoutMap) {
-  if (!small) return '';
-  if (!layoutMap) return small;
-  return layoutMap[small] || small;
-}
-
-/**
- * 在虚拟键盘容器上渲染字根图。
- * @param {HTMLElement} container 键盘容器（含 .kb-key 键元素，dataset.cap 为键帽）
- * @param {object} layoutMap 当前布局映射（null=qwerty）
+ * 渲染字根图到虚拟键盘。
+ * @param {HTMLElement} container 键盘容器（含 .kb-key 元素，dataset.cap 为键帽）
+ * @param {object} layoutMap 布局翻译映射（当前布局用；字根按 qwerty 反查时用）
  * @param {boolean} enabled 是否启用字根图
+ * @param {object} opts { layoutId, zigenMode }
+ *   zigenMode: 'qwerty-base'（星陈：数据键=QWERTY大码，按当前布局反查键帽）
+ *              'keycap'（灵铭：数据键=键帽本身，直接匹配）
  */
-export function renderZigenOnKeyboard(container, layoutMap, enabled) {
+export function renderZigenOnKeyboard(container, layoutMap, enabled, opts = {}) {
   const data = zigenCache || {};
+  const zigenMode = opts.zigenMode || 'qwerty-base';
   container.querySelectorAll('.kb-key').forEach((keyEl) => {
     const existing = keyEl.querySelector('.zigen-wrap');
     if (existing) existing.remove();
@@ -57,24 +45,31 @@ export function renderZigenOnKeyboard(container, layoutMap, enabled) {
     const cap = keyEl.dataset.cap;
     if (!cap || !/^[a-z]$/i.test(cap)) return; // 只对字母键显示字根
 
-    // 该键帽对应的 qwerty 字母（布局映射反查：目标键帽 → qwerty 原字母）
-    const qwertyLetter = reverseLookup(layoutMap, cap);
-    const big = qwertyLetter.toUpperCase();
-    const roots = data[big];
-    if (!roots || roots.length === 0) return;
-
-    // 大码显示（翻译后）；原键帽字母由大码代替，清空 textContent
-    const bigTranslated = translateBig(qwertyLetter, layoutMap);
+    let entries = null;
+    let bigLabel = cap.toUpperCase();
+    if (zigenMode === 'keycap') {
+      // 灵铭：数据键即键帽（Gallman 键），直接匹配
+      entries = data[cap.toLowerCase()];
+      bigLabel = cap.toUpperCase();
+    } else {
+      // 星陈：数据键为 QWERTY 大码，反查当前布局键帽对应的原 qwerty 字母
+      const qwertyLetter = reverseLookup(layoutMap, cap);
+      const big = qwertyLetter.toUpperCase();
+      entries = data[big];
+      if (!entries || entries.length === 0) return;
+      bigLabel = translateBig(qwertyLetter, layoutMap);
+    }
+    if (!entries || entries.length === 0) return;
 
     // 字根网格
     const wrap = document.createElement('div');
     wrap.className = 'zigen-wrap';
     wrap.innerHTML = `
-      <div class="zigen-big">${bigTranslated}</div>
+      <div class="zigen-big">${bigLabel}</div>
       <div class="zigen-grid">
-        ${roots.map((r) => {
-          const small = translateSmall(r.s, layoutMap);
-          return `<span class="zigen-item" title="${r.f}（${big}${r.s}）">` +
+        ${entries.map((r) => {
+          const small = (zigenMode === 'keycap') ? r.s : translateSmall(r.s, layoutMap);
+          return `<span class="zigen-item" title="${r.f}（${bigLabel}${r.s}）">` +
                  `<span class="zigen-font">${r.f}</span>` +
                  `<span class="zigen-small">${small}</span></span>`;
         }).join('')}
@@ -96,6 +91,26 @@ function reverseLookup(layoutMap, cap) {
     if (target === c) return q;
   }
   return c; // 键帽未映射（原样或符号）
+}
+
+/**
+ * 把大码字母翻译为当前布局键帽。
+ * @param {string} big 大码字母（A-Z）
+ * @param {object} layoutMap qwerty→目标 映射（null = qwerty 不翻译）
+ */
+function translateBig(big, layoutMap) {
+  if (!layoutMap) return big.toUpperCase();
+  const m = layoutMap[big.toLowerCase()];
+  return (m || big).toUpperCase();
+}
+
+/**
+ * 小码翻译（单字母 → 布局键帽）。
+ */
+function translateSmall(small, layoutMap) {
+  if (!small) return '';
+  if (!layoutMap) return small;
+  return layoutMap[small] || small;
 }
 
 /** 清空字根（切到非星陈方案/关闭时） */

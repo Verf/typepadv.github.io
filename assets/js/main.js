@@ -4,22 +4,19 @@ import { ls, idb, codeTableStore, customTextStore } from './storage.js';
 import { parseCodeTable, lookupCode, lookupAllCodes } from './parser.js';
 import {
   BUILTIN_LAYOUTS, GALLMAN_ROWS, QWERTY_ROWS, KEY_MAP,
-  translateCode, gallmanMap, buildLayoutMap, fingerFor,
+  translateCode, gallmanMap, buildLayoutMap, buildCodeTranslateMap,
+  fingerFor,
   CUSTOM_LAYOUTS_KEY,
 } from './layout.js';
 import { renderKeyboard, setTargetKey, flashKey, clearKeyStates } from './keyboard.js';
 import { loadZigenData, renderZigenOnKeyboard, clearZigen } from './roots.js';
-import { loadChaifenData, getChaifen, translateChaifenCode } from './chaifen.js';
+import { loadChaifenData, getChaifen } from './chaifen.js';
+import { BUILTIN_SCHEMES, setCurrentScheme } from './schemes.js';
 import { TypingController } from './typing.js';
 import * as stats from './stats.js';
 
 // ---- 常量 ----
-const BUILTIN_CODE_TABLE = {
-  key: 'star-builtin',
-  name: '宇浩星陈（内置）',
-  url: 'assets/code-tables/mabiao-star.txt',
-  direction: 'code-left',
-};
+// 内置方案注册表见 schemes.js（码表/拆分/字根/编码基准布局）
 
 // ---- 全局状态 ----
 const state = {
@@ -31,9 +28,11 @@ const state = {
     pageSize: 20, // 跟打区每页字数（0 = 全部）
     showZigen: true, // 虚拟键盘键面显示字根图
     showChaifen: true, // 码表提示附加字根拆分
+    translateCode: true, // 码表编码是否翻译到当前键盘布局（灵铭默认关）
   },
   currentText: null,
   layoutMap: null,      // 当前布局的翻译映射（null = qwerty 不翻译）
+  codeTranslateMap: null, // 方案基准布局 → 当前布局 的编码翻译映射（null = 不翻译）
   currentCodeTable: null, // { charToCodes, direction }
   customLayouts: [],    // [{id, name, map}]
   selectedTextId: null,
@@ -62,6 +61,7 @@ const dom = {
   fingerColor: $('#finger-color'),
   showCodeHint: $('#show-code-hint'),
   showChaifen: $('#show-chaifen'),
+  translateCode: $('#translate-code'),
   btnManageLayouts: $('#btn-manage-layouts'),
   btnImportCodetable: $('#btn-import-codetable'),
   codetableFile: $('#codetable-file'),
@@ -123,13 +123,17 @@ async function init() {
   await loadDefaultText();
   renderHistory();
   await loadCodeTable(state.settings.codetable);
-  // 字根数据异步加载，完成后重绘键盘（可能尚未显示）
-  loadZigenData().then(() => {
-    renderKeyboardDefault(); // 重新渲染键盘（含字根）
-  });
-  // 字根拆分数据后台预加载（首次 1.2MB gzip，之后走 IndexedDB）
-  if (state.settings.showChaifen) {
-    loadChaifenData().catch(() => {});
+  // 字根/拆分数据异步加载（按当前方案），完成后重绘键盘（可能尚未显示）
+  const scheme = BUILTIN_SCHEMES[state.settings.codetable] || null;
+  setCurrentScheme(scheme);
+  if (scheme?.zigen?.url) {
+    loadZigenData(scheme.zigen.url).then(() => {
+      renderKeyboardDefault(); // 重新渲染键盘（含字根）
+    });
+  }
+  // 字根拆分数据后台预加载（首次较大，之后走 IndexedDB）
+  if (state.settings.showChaifen && scheme?.chaifen) {
+    loadChaifenData(scheme.chaifen).catch(() => {});
   }
   // 首次进入自动聚焦输入框（页面加载完成后；若用户已点击其它控件则不打扰）
   const focusInputOnce = () => {
@@ -162,6 +166,7 @@ function renderSettings() {
   dom.fingerColor.checked = state.settings.fingerColor;
   dom.showCodeHint.checked = state.settings.showCodeHint;
   dom.showChaifen.checked = state.settings.showChaifen !== false;
+  dom.translateCode.checked = state.settings.translateCode !== false;
   dom.pageSizeSelect.value = String(state.settings.pageSize ?? 20);
 }
 
@@ -216,25 +221,53 @@ function getLayoutMapFor(layoutId) {
 
 function applyLayout() {
   state.layoutMap = getLayoutMapFor(state.settings.layout);
+  // 编码翻译映射：方案基准布局 → 当前布局
+  // - 内置布局：buildCodeTranslateMap 处理（qwerty↔gallman 用 KEY_MAP 语义）
+  // - 自定义布局：其 layoutMap 即「qwerty→目标键帽」，基准为 qwerty 时直接复用；
+  //   基准为 gallman 时退化为按当前布局映射（边缘场景，仅显示提示用）
+  const scheme = BUILTIN_SCHEMES[state.settings.codetable] || null;
+  const base = scheme?.codeBaseLayout || 'qwerty';
+  const layoutId = state.settings.layout;
+  const isBuiltin = Boolean(BUILTIN_LAYOUTS[layoutId]);
+  if (isBuiltin) {
+    state.codeTranslateMap = buildCodeTranslateMap(base, layoutId);
+  } else if (base === 'qwerty') {
+    // 自定义布局：layoutMap 即 qwerty→目标键帽（与星陈翻译语义一致）
+    state.codeTranslateMap = state.layoutMap;
+  } else {
+    // 灵铭 + 自定义布局：按「基准字母行→当前布局」物理对齐（自定义视为 qwerty 基准行）
+    state.codeTranslateMap = buildCodeTranslateMap(base, 'qwerty');
+  }
   renderKeyboardDefault();
   updateCodeHint();
   if (state.sessionView) updateTargetKey();
 }
 
+/** 当前方案的 zigenMode：星陈=qwerty-base（按布局反查），灵铭=keycap（键帽直配） */
+function zigenModeFor(codetableKey) {
+  const scheme = BUILTIN_SCHEMES[codetableKey];
+  if (scheme && scheme.codeBaseLayout === 'gallman') return 'keycap';
+  return 'qwerty-base';
+}
+
 function renderKeyboardDefault() {
   renderKeyboard(dom.keyboard, state.settings.layout, getLayoutRows(state.settings.layout));
-  // 渲染字根图（星陈方案时在键面显示字根）
-  renderZigenOnKeyboard(dom.keyboard, state.layoutMap, state.settings.showZigen);
+  // 渲染字根图（按方案：星陈按布局反查大码；灵铭按 Gallman 键帽直配）
+  renderZigenOnKeyboard(dom.keyboard, state.layoutMap, state.settings.showZigen, {
+    zigenMode: zigenModeFor(state.settings.codetable),
+  });
 }
 
 // ---- 码表 ----
 async function populateCodetableOptions() {
   dom.codetableSelect.innerHTML = '';
-  // 内置
-  const opt = document.createElement('option');
-  opt.value = BUILTIN_CODE_TABLE.key;
-  opt.textContent = BUILTIN_CODE_TABLE.name;
-  dom.codetableSelect.appendChild(opt);
+  // 内置方案
+  for (const [key, scheme] of Object.entries(BUILTIN_SCHEMES)) {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = scheme.name;
+    dom.codetableSelect.appendChild(opt);
+  }
   // 用户上传
   const tables = await codeTableStore.getAll();
   for (const t of tables) {
@@ -249,9 +282,10 @@ async function loadCodeTable(key) {
   // 先查缓存
   let parsed = await codeTableStore.getCache(key);
   if (!parsed) {
-    if (key === BUILTIN_CODE_TABLE.key) {
+    const scheme = BUILTIN_SCHEMES[key];
+    if (scheme) {
       // fetch 内置
-      const resp = await fetch(BUILTIN_CODE_TABLE.url);
+      const resp = await fetch(scheme.codeTable.url);
       const text = await resp.text();
       parsed = parseCodeTable(text);
       await codeTableStore.saveCache(key, parsed);
@@ -598,6 +632,17 @@ function charSpan(session, i) {
   return `<span class="${cls}">${ch}</span>`;
 }
 
+/**
+ * 编码翻译到当前键盘布局（受设置 translateCode 控制）。
+ * @param {string} code 码表编码
+ * @returns {string} 翻译后编码（原样返回 = 未翻译）
+ */
+function translateToCurrentLayout(code) {
+  if (!code) return '';
+  if (state.settings.translateCode === false) return code; // 用户关闭翻译
+  return translateCode(code, state.codeTranslateMap);
+}
+
 function updateCodeHint() {
   const s = controller.session;
   if (!s || !state.settings.showCodeHint) {
@@ -616,11 +661,9 @@ function updateCodeHint() {
     dom.codeHint.textContent = ch + '：无编码';
     return;
   }
-  // 翻译每个编码到当前布局
-  const translatedList = codes.map((code) =>
-    state.layoutMap ? translateCode(code, state.layoutMap) : code
-  );
-  // 只显示当前布局下的编码（不显示 qwerty 原码）
+  // 翻译每个编码到当前布局（开关关闭/基准=当前时原样）
+  const translatedList = codes.map((code) => translateToCurrentLayout(code));
+  // 只显示当前布局下的编码（不显示原码）
   if (!state.settings.showChaifen) {
     dom.codeHint.innerHTML = `${ch}：<strong>${translatedList.join(', ')}</strong>`;
     return;
@@ -643,12 +686,13 @@ function updateCodeHint() {
 /** 查拆分表并渲染拆分提示（异步） */
 async function updateChaifenHint(ch, translatedList) {
   try {
-    const info = await getChaifen(ch);
+    const info = getChaifen(ch);
     if (!info) return '';
     const splitEncoded = info.split.split('').map((r) =>
       `<span class="chaifen-root" title="${r}">${r}</span>`
     ).join('');
-    const codeEncoded = translateChaifenCode(info.code, state.layoutMap);
+    // 拆分全码（大小写混合：大码大写/小码小写）翻译到当前布局（受开关控制）
+    const codeEncoded = translateToCurrentLayout(info.code);
     return `<span class="chaifen-sep">｜</span><span class="chaifen-label">拆</span>` +
            `<span class="chaifen-split">${splitEncoded}</span>` +
            `<span class="chaifen-code">${codeEncoded}</span>`;
@@ -664,7 +708,7 @@ function updateTargetKey() {
   if (!ch) return;
   const code = lookupCode(state.currentCodeTable, ch);
   if (!code) return;
-  const translated = translateCode(code, state.layoutMap);
+  const translated = translateToCurrentLayout(code);
   const firstKey = translated[0];
   setTargetKey(dom.keyboard, firstKey);
 }
@@ -883,14 +927,14 @@ function bindEvents() {
   });
 
   function flashForLastKey() {
-    // 同步虚拟键盘反馈（若有布局映射，flash 最后键）
+    // 同步虚拟键盘反馈（flash 最后键；仅在有目标键可查时）
     if (!state.layoutMap || !controller.session) return;
     const s = controller.session;
     const ch = s.text[s.pos - 1];
     if (ch) {
       const code = state.currentCodeTable && lookupCode(state.currentCodeTable, ch);
       if (code) {
-        const translated = translateCode(code, state.layoutMap);
+        const translated = translateToCurrentLayout(code);
         const last = translated[translated.length - 1];
         const correct = s.charStates[s.pos - 1] === 'correct';
         flashKey(dom.keyboard, last, correct);
@@ -913,6 +957,30 @@ function bindEvents() {
     state.settings.codetable = dom.codetableSelect.value;
     saveSettings();
     await loadCodeTable(state.settings.codetable);
+    // 联动：更新编码翻译映射（基准布局随方案变）、加载对应拆分/字根
+    const scheme = BUILTIN_SCHEMES[state.settings.codetable] || null;
+    setCurrentScheme(scheme);
+    // 切换内置方案时，翻译开关自动设为该方案默认值（用户可再手动调）
+    if (scheme) {
+      state.settings.translateCode = scheme.defaultTranslate;
+      saveSettings();
+    }
+    renderSettings();
+    applyLayout();
+    // 加载该方案的拆分表（若开启显示拆分）
+    if (state.settings.showChaifen && scheme?.chaifen) {
+      loadChaifenData(scheme.chaifen).then(() => updateCodeHint()).catch(() => {});
+    }
+    // 加载该方案字根图，完成后重绘键盘
+    if (scheme?.zigen?.url) {
+      loadZigenData(scheme.zigen.url).then(() => {
+        renderKeyboardDefault();
+        if (state.sessionView) updateTargetKey();
+      });
+    } else {
+      clearZigen(dom.keyboard); // 自定义码表无字根
+      if (state.sessionView) updateTargetKey();
+    }
   });
   dom.fingerColor.addEventListener('change', () => {
     state.settings.fingerColor = dom.fingerColor.checked;
@@ -928,8 +996,17 @@ function bindEvents() {
     state.settings.showChaifen = dom.showChaifen.checked;
     saveSettings();
     updateCodeHint();
-    // 打开时确保拆分数据已加载
-    if (dom.showChaifen.checked) loadChaifenData().catch(() => {});
+    // 打开时确保拆分数据已加载（按当前方案）
+    if (dom.showChaifen.checked) {
+      const scheme = BUILTIN_SCHEMES[state.settings.codetable] || null;
+      if (scheme?.chaifen) loadChaifenData(scheme.chaifen).catch(() => {});
+    }
+  });
+  dom.translateCode.addEventListener('change', () => {
+    state.settings.translateCode = dom.translateCode.checked;
+    saveSettings();
+    updateCodeHint();
+    if (state.sessionView) updateTargetKey();
   });
   // 分页大小切换
   dom.pageSizeSelect.addEventListener('change', () => {
@@ -962,6 +1039,14 @@ function bindEvents() {
     saveSettings();
     renderSettings();
     await loadCodeTable(key);
+    // 自定义码表：无内置拆分/字根，基准布局视为 qwerty（可手动开关翻译）
+    setCurrentScheme(null);
+    state.settings.translateCode = true;
+    saveSettings();
+    renderSettings();
+    applyLayout();
+    clearZigen(dom.keyboard);
+    if (state.sessionView) updateTargetKey();
   });
 
   // 文本管理

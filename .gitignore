@@ -2,4 +2,5 @@
 node_modules/
 .piclaw-cache/
 test/artifacts/
+data/spill/
 public_placeholder

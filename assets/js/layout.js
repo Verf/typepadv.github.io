@@ -19,9 +19,10 @@ export const GALLMAN_ROWS = [
 ];
 
 // 内置布局注册表
+// keyRowOffset: 字母行在 rows 数组中的起始索引（qwerty 含数字行 offset=1，gallman 无数字行 offset=0）
 export const BUILTIN_LAYOUTS = {
-  qwerty: { id: 'qwerty', name: 'QWERTY（标准）', rows: QWERTY_ROWS },
-  gallman: { id: 'gallman', name: 'Gallman（自定义）', rows: GALLMAN_ROWS },
+  qwerty: { id: 'qwerty', name: 'QWERTY（标准）', rows: QWERTY_ROWS, keyRowOffset: 1 },
+  gallman: { id: 'gallman', name: 'Gallman（自定义）', rows: GALLMAN_ROWS, keyRowOffset: 0 },
 };
 
 // 指法分区（基于 QWERTY 物理位置）：L1-L5 左手小指→拇指，R1-R5 右手
@@ -121,6 +122,53 @@ export function getLayoutMap(layoutId) {
   if (layoutId === 'qwerty') return null; // qwerty 不翻译
   // 自定义布局：从 localStorage 读取（由 main.js 注入）
   return null;
+}
+
+/**
+ * 生成「基准布局 → 目标布局」的编码翻译映射。
+ * 内置 qwerty↔gallman 使用 KEY_MAP 语义（与既有 gallmanMap 完全一致，星陈行为不变）；
+ * 其余（自定义布局）按字母行物理位置对齐。
+ * @param {string} baseLayoutId 基准布局（码表编码所基于的布局）
+ * @param {string} targetLayoutId 目标布局（当前键盘布局）
+ * @returns {Object|null} 映射表（基准→目标）；相同或无需翻译时返回 null
+ */
+export function buildCodeTranslateMap(baseLayoutId, targetLayoutId) {
+  if (!baseLayoutId || baseLayoutId === targetLayoutId) return null;
+  // 内置两布局：用 KEY_MAP 语义（qwerty→gallman 正向；gallman→qwerty 反向）
+  if (baseLayoutId === 'qwerty' && targetLayoutId === 'gallman') return gallmanMap();
+  if (baseLayoutId === 'gallman' && targetLayoutId === 'qwerty') {
+    const gm = gallmanMap();
+    const rev = {};
+    for (const [q, g] of Object.entries(gm)) rev[g] = q;
+    return rev;
+  }
+  // 自定义布局等：字母行物理位置对齐（qwerty 数字行 offset=1，gallman 无数字行 offset=0）
+  const base = BUILTIN_LAYOUTS[baseLayoutId] || BUILTIN_LAYOUTS.qwerty;
+  const target = BUILTIN_LAYOUTS[targetLayoutId] || BUILTIN_LAYOUTS.qwerty;
+  const baseLetterRows = base.rows.slice(base.keyRowOffset || 0);
+  const targetLetterRows = target.rows.slice(target.keyRowOffset || 0);
+  const map = {};
+  baseLetterRows.forEach((row, r) => {
+    const tRow = targetLetterRows[r];
+    if (!tRow) return;
+    row.forEach((baseCap, c) => {
+      const tCap = tRow[c];
+      if (tCap === undefined || tCap === baseCap) return;
+      // 只映射字母键（编码只含字母；符号不参与编码）
+      if (/^[a-z]$/i.test(baseCap)) map[baseCap] = tCap;
+    });
+  });
+  return Object.keys(map).length > 0 ? map : null;
+}
+
+/**
+ * 翻译一段编码：从基准布局键帽 → 目标布局键帽。
+ * 复用 translateCode 的逐字符逻辑（大小写原样保留）。
+ * @param {string} code 码表编码
+ * @param {Object} map 基准→目标 映射（null = 不翻译）
+ */
+export function translateCodeToLayout(code, map) {
+  return translateCode(code, map);
 }
 
 // ---- 布局编辑器辅助 ----

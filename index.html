@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>宇浩星陈跟打器</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=24-a812ab4">
-  <link rel="stylesheet" href="assets/vendor/pico.min.css?v=24-a812ab4">
-  <link rel="stylesheet" href="assets/css/style.css?v=24-a812ab4">
+  <title>跟打器</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=25-1003091">
+  <link rel="stylesheet" href="assets/vendor/pico.min.css?v=25-1003091">
+  <link rel="stylesheet" href="assets/css/style.css?v=25-1003091">
 </head>
 <body>
   <div class="app-layout">
     <!-- ===== 左侧栏 ===== -->
     <aside class="sidebar">
       <header class="app-header">
-        <h1>宇浩星陈跟打器</h1>
-        <p class="subtitle">练习宇浩星陈输入方案</p>
+        <h1>跟打器</h1>
+        <p class="subtitle">中文形码跟打练习</p>
       </header>
 
       <!-- 实时统计（左上） -->
@@ -50,6 +50,9 @@
             </label>
             <label class="checkbox-line">显示字根拆分
               <input type="checkbox" id="show-chaifen" checked>
+            </label>
+            <label class="checkbox-line" title="将码表编码翻译为当前键盘布局的按键序列（星陈默认开；灵铭编码原生为 Gallman 键位，默认关）">码表翻译到布局
+              <input type="checkbox" id="translate-code" checked>
             </label>
           </div>
           <div class="settings-actions">
@@ -126,7 +129,7 @@
   </div>
 
   <footer class="app-footer">
-    <small>宇浩星陈跟打器 · MIT License · <a href="https://shurufa.app/zht/learn/roots.html" target="_blank">宇浩星陈学习</a></small>
+    <small>跟打器 · MIT License · 内置宇浩星陈 / 灵铭方案</small>
   </footer>
 
   <!-- 布局编辑器模态框 -->
@@ -141,6 +144,6 @@
     </article>
   </dialog>
 
-  <script type="module" src="assets/js/main.js?v=24-a812ab4"></script>
+  <script type="module" src="assets/js/main.js?v=25-1003091"></script>
 </body>
 </html>

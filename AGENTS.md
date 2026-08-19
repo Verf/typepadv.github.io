@@ -42,3 +42,10 @@
 13. **测试断言随功能更新**：默认文本、统计口径变化后，live.test/integration.test 的断言（如「码表提示 ifk」）必须同步更新，否则线上测试误报失败。
 14. **测试环境**：ESM 项目 `.js` 按 type=module 处理，Node 侧工具/测试用 `.cjs`；puppeteer-core 无 `page.waitForTimeout`，用原生 setTimeout；测试走 http://localhost:4173（serve.cjs），file:// 会 CORS 失败。
 15. **puppeteer 多页面导航限制**：本环境 puppeteer-core 对同页 reload/多 page 二次 goto 会报 `Target closed`（大文件加载+IndexedDB 场景），回归测试别依赖导航重进；用 `page.evaluateOnNewDocument` 注入 localStorage 模拟「重新进入」。
+
+### 多方案（星陈 + 灵铭）
+16. **方案注册表**：内置方案集中在 `assets/js/schemes.js`（`BUILTIN_SCHEMES`），每方案声明码表/拆分/字根 URL + `codeBaseLayout`（编码基准布局：星陈=qwerty、灵铭=gallman）+ `defaultTranslate`。新增方案只需改注册表+加数据文件。
+17. **灵铭方案**：用户自研「灵明字根 × Gallman 布局重排」，码表编码原生是 Gallman 键帽（`宇→frmo`），显示**不需要翻译**（默认关翻译开关）。数据源：`git.nas.verf.uk/verf/mycode` 仓库 gallming 交付物（内网，SSRF 工具抓不到但 shell git clone 可以）。数据文件：`mabiao-ling.txt`（21,653 行）、`chaifen-ling.json`（20,993 字）、`zigen-ling.json`（20 Gallman 键、238 字根）。
+18. **翻译开关语义**：设置「码表翻译到布局」控制编码是否从基准布局翻译到当前布局。内置 qwerty↔gallman 用 KEY_MAP 语义（`buildCodeTranslateMap` 直接复用 gallmanMap 及其反向，保证星陈行为不变）；自定义布局基准为 qwerty 时直接复用 layoutMap；灵铭+自定义布局退化为按 qwerty 物理对齐。切内置方案时开关自动设为该方案默认值。
+19. **字根渲染双模式**：星陈 `zigenMode='qwerty-base'`（数据键=QWERTY 大码，按当前布局反查键帽）；灵铭 `'keycap'`（数据键=Gallman 键帽直配）。灵铭字根条目字段 `s` 是声韵编码（如 da/e/ge），不是单字母小码。
+20. **自定义码表**：无内置拆分/字根，基准布局视为 qwerty、翻译默认开，导入后 `clearZigen` 清字根。

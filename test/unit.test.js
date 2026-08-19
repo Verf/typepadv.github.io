@@ -117,6 +117,39 @@ async function importESM(rel) {
     assert.ok(layout.fingerFor(1, 9).startsWith('r')); // p 右手
   });
 
+  t('buildCodeTranslateMap: qwerty→gallman 与 KEY_MAP 一致', () => {
+    const m = layout.buildCodeTranslateMap('qwerty', 'gallman');
+    assert.strictEqual(m.q, 'p');
+    assert.strictEqual(m.p, 'i');
+    assert.strictEqual(m.a, 'n');
+    assert.strictEqual(m.n, 'q');
+    // 翻译结果与 gallmanMap 等价
+    const gm = layout.gallmanMap();
+    for (const [k, v] of Object.entries(m)) assert.strictEqual(v, gm[k]);
+  });
+  t('buildCodeTranslateMap: 相同布局返回 null（不翻译）', () => {
+    assert.strictEqual(layout.buildCodeTranslateMap('qwerty', 'qwerty'), null);
+    assert.strictEqual(layout.buildCodeTranslateMap('gallman', 'gallman'), null);
+    assert.strictEqual(layout.buildCodeTranslateMap(null, 'qwerty'), null);
+  });
+  t('buildCodeTranslateMap: gallman→qwerty 为反向映射（灵铭+QWERTY 场景）', () => {
+    const m = layout.buildCodeTranslateMap('gallman', 'qwerty');
+    // gallman 顶行第1列 p ↔ qwerty 顶行第1列 q
+    assert.strictEqual(m.p, 'q');
+    assert.strictEqual(m.l, 'w');
+    assert.strictEqual(m.d, 'e');
+    // 灵铭编码 frmo（gallman 原生）翻译到 qwerty：f→u, r→s, m→m, o→i
+    assert.strictEqual(layout.translateCode('frmo', m), 'usmi');
+  });
+  t('translateCodeToLayout: 星陈 ifk 翻译 gallman 为 osa（与集成测试一致）', () => {
+    const m = layout.buildCodeTranslateMap('qwerty', 'gallman');
+    assert.strictEqual(layout.translateCode('ifk', m), 'osa');
+  });
+  t('translateCodeToLayout: 灵铭 osa 反向翻译 qwerty 为 ifk', () => {
+    const m = layout.buildCodeTranslateMap('gallman', 'qwerty');
+    assert.strictEqual(layout.translateCode('osa', m), 'ifk');
+  });
+
   // ===== stats 测试 =====
   console.log('\n[stats] 统计逻辑');
   const statsMod = await importESM('assets/js/stats.js');
@@ -244,6 +277,85 @@ async function importESM(rel) {
     const p = parser2.parseCodeTable('ab\t我们\na\t就');
     assert.strictEqual(p.charToCodes.has('我们'), false, '词条不应入库');
     assert.strictEqual(p.charToCodes.get('就')[0], 'a');
+  });
+
+  // ---- 灵铭方案（内置）----
+  console.log('\n[lingming] 灵铭内置方案');
+  await t('灵铭码表可解析（code-right 自动检测）', async () => {
+    const fs = await import('fs');
+    const text = fs.readFileSync(new URL('../assets/code-tables/mabiao-ling.txt', import.meta.url), 'utf8');
+    const p = parser.parseCodeTable(text);
+    assert.strictEqual(p.direction, 'code-left'); // 已转为编码在左
+    assert.ok(p.stats.uniqueChars > 20000, '灵铭码表应覆盖 2 万+ 字，实际 ' + p.stats.uniqueChars);
+    // 关键字编码（Gallman 原生）
+    assert.deepStrictEqual(p.charToCodes.get('宇'), ['frmo']);
+    assert.deepStrictEqual(p.charToCodes.get('的'), ['e', 'fbxc']);
+    assert.deepStrictEqual(p.charToCodes.get('中'), ['di', 'dfi']);
+    assert.deepStrictEqual(p.charToCodes.get('一'), ['ri']);
+  });
+  await t('灵铭拆分表已转 JSON 且结构正确', async () => {
+    const fs = await import('fs');
+    const raw = JSON.parse(fs.readFileSync(new URL('../assets/data/chaifen-ling.json', import.meta.url), 'utf8'));
+    assert.ok(Object.keys(raw).length > 20000, '拆分表应覆盖 2 万+ 字');
+    const yu = raw['宇'];
+    assert.ok(yu && yu.includes('\t'), '宇 的拆分应有 \t 分隔');
+    const [split, code] = yu.split('\t');
+    assert.ok(split.includes('宀'), '宇 拆分含 宀');
+    assert.strictEqual(code, 'FRMo'); // 灵铭全码（Gallman 原生）
+  });
+  await t('灵铭字根表已转 JSON（Gallman 键帽直配）', async () => {
+    const fs = await import('fs');
+    const raw = JSON.parse(fs.readFileSync(new URL('../assets/data/zigen-ling.json', import.meta.url), 'utf8'));
+    const keys = Object.keys(raw);
+    assert.strictEqual(keys.length, 20, '灵铭应为 20 个大码键');
+    // 键帽为 Gallman 辅音键
+    for (const k of keys) assert.ok(/^[a-z]$/.test(k), '键帽应为字母: ' + k);
+    // p 键含字根
+    assert.ok(raw['p'] && raw['p'].length > 0, 'p 键应有字根');
+    // 声韵码字段 s 存在
+    assert.ok(raw['p'].every((r) => typeof r.s === 'string' && r.s.length > 0), '每条字根应有声韵');
+  });
+  await t('schemes 注册表：星陈/灵铭元数据正确', async () => {
+    const schemes = await importESM('assets/js/schemes.js');
+    const star = schemes.BUILTIN_SCHEMES['star-builtin'];
+    const ling = schemes.BUILTIN_SCHEMES['ling-builtin'];
+    assert.strictEqual(star.codeBaseLayout, 'qwerty');
+    assert.strictEqual(star.defaultTranslate, true);
+    assert.strictEqual(ling.codeBaseLayout, 'gallman');
+    assert.strictEqual(ling.defaultTranslate, false);
+    assert.ok(ling.codeTable.url.includes('mabiao-ling.txt'));
+    assert.ok(ling.chaifen.url.includes('chaifen-ling.json'));
+    assert.ok(ling.zigen.url.includes('zigen-ling.json'));
+  });
+  await t('chaifen.js: 按方案多源加载', async () => {
+    const chaifen = await importESM('assets/js/chaifen.js');
+    const star = (await importESM('assets/js/schemes.js')).BUILTIN_SCHEMES['star-builtin'];
+    const ling = (await importESM('assets/js/schemes.js')).BUILTIN_SCHEMES['ling-builtin'];
+    // mock fetch（node 环境无相对路径 fetch）
+    const fs = await import('fs');
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+      const rel = String(url).replace('assets/', '../assets/');
+      const abs = new URL(rel, import.meta.url);
+      const body = fs.readFileSync(abs, 'utf8');
+      return { ok: true, json: async () => JSON.parse(body), text: async () => body };
+    };
+    try {
+      // 先加载星陈，再切灵铭（重新加载）
+      await chaifen.loadChaifenData(star.chaifen);
+      const sInfo = chaifen.getChaifen('宇');
+      assert.ok(sInfo && sInfo.code === 'IFKc', '星陈拆分: 宇=IFKc，实际 ' + (sInfo && sInfo.code));
+      await chaifen.loadChaifenData(ling.chaifen);
+      const lInfo = chaifen.getChaifen('宇');
+      assert.ok(lInfo && lInfo.code === 'FRMo', '灵铭拆分: 宇=FRMo，实际 ' + (lInfo && lInfo.code));
+      assert.ok(lInfo.split.includes('宀'), '灵铭拆分含 宀');
+      // 切回星陈（再次重新加载）
+      await chaifen.loadChaifenData(star.chaifen);
+      const sInfo2 = chaifen.getChaifen('宇');
+      assert.ok(sInfo2 && sInfo2.code === 'IFKc', '切回星陈后: 宇=IFKc，实际 ' + (sInfo2 && sInfo2.code));
+    } finally {
+      globalThis.fetch = origFetch;
+    }
   });
 
   // 汇总
