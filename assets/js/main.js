@@ -92,8 +92,16 @@ const dom = {
 
 // 打字控制器
 const controller = new TypingController({
-  render: (session) => renderTyping(session),
-  onFinish: (finalStats) => onSessionFinish(finalStats),
+  render: (session) => {
+    renderTyping(session);
+    // 仅在非「初始化/切换文本」渲染时保存进度（见 startSession 的 _noSave 标记）
+    if (state._sessionNoSave) return;
+    saveSessionProgress();
+  },
+  onFinish: (finalStats) => {
+    onSessionFinish(finalStats);
+    clearSessionProgress(); // 已完成的文本不再记忆进度
+  },
 });
 
 // ---- 初始化 ----
@@ -293,7 +301,13 @@ async function loadDefaultText() {
   state.selectedTextName = firstRange.name;
   renderTextList();
   updateCurrentTextName();
-  startSession(initial);
+  // 先读出已存进度（startSession 不覆盖），再决定恢复
+  const savedBefore = readSessionProgress();
+  startSession(initial, { noSave: true });
+  if (savedBefore && !tryRestoreSessionWith(savedBefore)) {
+    // 无进度可恢复或已与当前文本不一致：从零开始并记录
+    saveSessionProgress();
+  }
 }
 
 function updateCurrentTextName() {
@@ -332,12 +346,20 @@ function renderTextList() {
       chip.className = 'text-item' + (item.id === state.selectedTextId ? ' active' : '');
       chip.textContent = item.name + '（' + item.content.length + '字）';
       chip.addEventListener('click', () => {
+        // 先保存旧文本当前进度（用旧 id/旧文本，确保切走不丢）
+        if (controller.session && state._sessionNoSave === false && state.selectedTextId) {
+          saveSessionProgressFor(state.selectedTextId, state.currentText, controller.session);
+        }
         state.currentText = item.content;
         state.selectedTextId = item.id;
         state.selectedTextName = item.name;
         renderTextList();
         updateCurrentTextName();
-        startSession(item.content);
+        startSession(item.content, { noSave: true });
+        // 恢复该文本已存进度（若有）；否则从 0 开始并记录
+        if (!tryRestoreSession()) {
+          saveSessionProgress();
+        }
         // 选择后关闭下拉
         if (dom.textSelectPanel) dom.textSelectPanel.open = false;
       });
@@ -365,13 +387,140 @@ async function handleImportText() {
 }
 
 // ---- 跟打会话 ----
-function startSession(text) {
+function startSession(text, opts = {}) {
   state.lastCursorPage = null;
   state.viewPage = null;
+  // 初始化/切换文本的首次渲染不写入进度（避免覆盖已存进度）
+  state._sessionNoSave = opts.noSave !== false;
   controller.start(text);
   controller.resetInputTracking();
   updateCodeHint();
   renderTyping(controller.session);
+  state._sessionNoSave = false;
+}
+
+// ---- 跟打进度持久化 ----
+// localStorage typepadv:sessionProgress = { textId, text, session, ts }
+// 每次输入渲染即保存；切换文本/重置/完成时清除或覆盖
+
+const SESSION_PROGRESS_KEY = 'sessionProgress';
+
+function saveSessionProgress() {
+  const s = controller.session;
+  if (!s || !state.selectedTextId) return;
+  saveSessionProgressFor(state.selectedTextId, state.currentText, s);
+}
+
+/** 保存指定文本的进度（textId/text/session 显式传入，避免切换时错位） */
+function saveSessionProgressFor(textId, text, s) {
+  try {
+    if (!s || !textId) return;
+    const all = readAllSessionProgress();
+    all[textId] = {
+      textId,
+      text,
+      session: {
+        text: s.text,
+        pos: s.pos,
+        charStates: s.charStates,
+        keystrokes: s.keystrokes,
+        backspaces: s.backspaces,
+        errors: s.errors,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      },
+      ts: Date.now(),
+    };
+    // 只保留少量文本的进度（防 localStorage 膨胀）
+    const keys = Object.keys(all);
+    if (keys.length > 20) {
+      // 淘汰最旧的 10 个
+      const sorted = keys.sort((a, b) => (all[a].ts || 0) - (all[b].ts || 0));
+      for (const k of sorted.slice(0, keys.length - 20)) delete all[k];
+    }
+    ls.set(SESSION_PROGRESS_KEY, all);
+  } catch { /* 存储满等异常忽略 */ }
+}
+
+/** 读取全部文本的已存进度 */
+function readAllSessionProgress() {
+  try {
+    return ls.get(SESSION_PROGRESS_KEY, null) || {};
+  } catch {
+    return {};
+  }
+}
+
+/** 读取当前文本的已存进度 */
+function readSessionProgress() {
+  try {
+    const all = readAllSessionProgress();
+    return all[state.selectedTextId] || null;
+  } catch {
+    return null;
+  }
+}
+
+function clearSessionProgress() {
+  try {
+    const all = readAllSessionProgress();
+    delete all[state.selectedTextId];
+    const rest = Object.keys(all);
+    if (rest.length === 0) ls.remove(SESSION_PROGRESS_KEY);
+    else ls.set(SESSION_PROGRESS_KEY, all);
+  } catch { /* 忽略 */ }
+}
+
+/**
+ * 尝试恢复上次进度（从 localStorage 读取）。
+ * @returns {boolean} 是否成功恢复
+ */
+function tryRestoreSession() {
+  return tryRestoreSessionWith(readSessionProgress());
+}
+
+/**
+ * 尝试用给定的已存进度恢复。仅当：
+ *  - saved 有效
+ *  - textId 与当前所选文本一致
+ *  - 文本内容一致（防文本被修改）
+ *  - 未完成（pos < text.length）
+ * 恢复后直接渲染。
+ * @param {object|null} saved 已存进度
+ * @returns {boolean} 是否成功恢复
+ */
+function tryRestoreSessionWith(saved) {
+  try {
+    if (!saved || !saved.session) return false;
+    if (saved.textId !== state.selectedTextId) return false;
+    if (saved.text !== state.currentText) return false;
+    const s = saved.session;
+    // 基本校验
+    if (!Array.isArray(s.text) || !Array.isArray(s.charStates)) return false;
+    if (s.text.length === 0 || s.pos < 0 || s.pos > s.text.length) return false;
+    if (s.pos >= s.text.length) return false; // 已完成/到达末尾不再恢复
+    // 恢复会话：直接用构造的 session 对象
+    controller.session = {
+      text: s.text,
+      pos: s.pos,
+      charStates: s.charStates.map((st) => (st === 'correct' || st === 'error' || st === 'backspaced' ? st : 'pending')),
+      keystrokes: s.keystrokes || 0,
+      backspaces: s.backspaces || 0,
+      errors: s.errors || 0,
+      startTime: s.startTime || null,
+      endTime: s.endTime || null,
+      lastLen: 0, // 输入跟踪重置
+      lastValue: '',
+    };
+    controller.finished = false;
+    state.lastCursorPage = null;
+    state.viewPage = null;
+    renderTyping(controller.session);
+    updateCodeHint();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function renderTyping(session) {
@@ -827,6 +976,8 @@ function bindEvents() {
     renderTextList();
   });
   dom.btnRestart.addEventListener('click', () => {
+    // 用户主动重置：清除已存进度并从零开始
+    clearSessionProgress();
     if (state.currentText) startSession(state.currentText);
   });
 

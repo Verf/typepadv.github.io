@@ -16,7 +16,8 @@ const LIVE_URL = process.argv[2] || 'https://verf.github.io/typepadv.github.io/'
 
   console.log('验证线上部署:', LIVE_URL);
   await page.goto(LIVE_URL, { waitUntil: 'load', timeout: 60000 });
-  await new Promise((r) => setTimeout(r, 4000));
+  // 线上首次加载含大文件（码表/字根/拆分），给足时间
+  await new Promise((r) => setTimeout(r, 8000));
 
   const result = await page.evaluate(() => ({
     title: document.title,
