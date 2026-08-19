@@ -65,6 +65,14 @@ const URL = 'http://localhost:4173/index.html';
     return p ? (p.querySelector('.zigen-wrap') ? p.querySelector('.zigen-wrap').textContent : '') : '';
   });
   check('Gallman p 键含字根（电丰艮弓…）', pKeyRoots.includes('电') && pKeyRoots.includes('鱼'), pKeyRoots.slice(0, 60));
+  // 回归：m 键（旧 J 族）应含单人旁 亻（「他」拆 Mwe，亻 需在 m 键字根表）
+  const mKeyRoots = await page.$$eval('.kb-key', (els) => {
+    const m = els.find((k) => k.dataset.cap === 'm');
+    return m && m.querySelector('.zigen-wrap')
+      ? [...m.querySelectorAll('.zigen-font')].map((e) => e.textContent).join('')
+      : '';
+  });
+  check('Gallman m 键含单人旁 亻（他→Mwe）', mKeyRoots.includes('亻'), 'm 键字根: ' + mKeyRoots.slice(0, 60));
   // 字根网格列数自适应（键宽 83px → 5 列），字根文字不溢出格子
   const gridCheck = await page.evaluate(() => {
     const key = [...document.querySelectorAll('.kb-key')].find((k) => k.dataset.cap === 'f');
