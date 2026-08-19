@@ -37,7 +37,7 @@ export function renderKeyboard(container, layoutId, rows = null) {
  */
 export function clearKeyStates(container) {
   container.querySelectorAll('.kb-key').forEach((k) => {
-    k.classList.remove('target', 'correct-hit', 'error-hit', 'pressed');
+    k.classList.remove('target', 'target-extra', 'correct-hit', 'error-hit', 'pressed');
   });
 }
 
@@ -47,11 +47,27 @@ export function clearKeyStates(container) {
  * @param {string} cap 键帽字符（如 "p" 或 "i"）
  */
 export function setTargetKey(container, cap) {
+  setTargetKeys(container, cap, []);
+}
+
+/**
+ * 设置多目标键高亮：主键（首个应按键，实心）+ 额外键（编码涉及的其余键，次级高亮）。
+ * @param {HTMLElement} container
+ * @param {string} primaryCap 主键帽字符（第一个编码的第一个字母）
+ * @param {string[]} extraCaps 额外键帽字符数组（所有编码涉及的全部字母，去主键）
+ */
+export function setTargetKeys(container, primaryCap, extraCaps = []) {
   clearKeyStates(container);
-  if (!cap) return;
-  const target = cap.toLowerCase();
+  const primary = primaryCap ? primaryCap.toLowerCase() : null;
+  const extras = new Set((extraCaps || []).map((c) => c.toLowerCase()).filter(Boolean));
   container.querySelectorAll('.kb-key').forEach((k) => {
-    if (k.dataset.cap === target) k.classList.add('target');
+    const cap = k.dataset.cap;
+    if (!cap) return;
+    if (primary && cap === primary) {
+      k.classList.add('target');
+    } else if (extras.has(cap)) {
+      k.classList.add('target-extra');
+    }
   });
 }
 

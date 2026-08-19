@@ -93,6 +93,18 @@ const URL = 'http://localhost:4173/index.html';
   check('灵铭字根无文字溢出重叠', gridCheck.overflow === 0, 'overflow=' + gridCheck.overflow);
   // 提示仍原样（Gallman 布局 + 灵铭 → 不翻译）
   check('灵铭+Gallman 提示仍原样（的→e）', /的：e, fbxc/.test(gallmanState.hint), gallmanState.hint);
+  // 多键高亮：灵铭「的」= e, fbxc → 主键 e，额外键 f/b/x/c
+  const targetKeys = await page.$$eval('.kb-key.target', (els) => els.map((e) => e.dataset.cap));
+  const extraKeys = await page.$$eval('.kb-key.target-extra', (els) => els.map((e) => e.dataset.cap));
+  console.log('灵铭目标键:', JSON.stringify(targetKeys), '额外键:', JSON.stringify(extraKeys));
+  check('灵铭目标主键为 e', targetKeys.includes('e'), JSON.stringify(targetKeys));
+  check('灵铭额外键高亮 f/b/x/c', ['f','b','x','c'].every((k) => extraKeys.includes(k)), JSON.stringify(extraKeys));
+  // 字根高亮：的 拆分「白勹丶」→ 白(f键)、勹(x键)、丶(c键)
+  const activeRoots = await page.$$eval('.zigen-item.active-root', (els) =>
+    els.map((el) => el.closest('.kb-key').dataset.cap + ':' + el.querySelector('.zigen-font').textContent)
+  );
+  console.log('灵铭字根高亮:', JSON.stringify(activeRoots));
+  check('灵铭字根条目高亮（白/勹/丶）', ['f:白','x:勹','c:丶'].every((s) => activeRoots.includes(s)), JSON.stringify(activeRoots));
 
   // ---- 3. 灵铭 + QWERTY + 手动开翻译 → 反向翻译 ----
   await page.select('#layout-select', 'qwerty');

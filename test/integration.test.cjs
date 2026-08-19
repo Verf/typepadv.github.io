@@ -67,8 +67,18 @@ const TEST_TEXT = '宇浩星陈跟打测试';
 
   const kbCaps = await page.$$eval('.kb-key', (els) => els.map((e) => e.dataset.cap));
   check('Gallman 键盘渲染 30 键', kbCaps.length === 30, 'count=' + kbCaps.length);
+  // 多键高亮：「宇」= ifk, ifkc → 翻译 osa, osac：主键 o，额外键 s/a/c
   const targetKeys = await page.$$eval('.kb-key.target', (els) => els.map((e) => e.dataset.cap));
-  check('目标键高亮包含 o（宇→osa 首键 o）', targetKeys.includes('o'), JSON.stringify(targetKeys));
+  const extraKeys = await page.$$eval('.kb-key.target-extra', (els) => els.map((e) => e.dataset.cap));
+  console.log('目标键:', JSON.stringify(targetKeys), '额外键:', JSON.stringify(extraKeys));
+  check('目标主键为 o（宇→osa 首键 o）', targetKeys.includes('o'), JSON.stringify(targetKeys));
+  check('额外键高亮 s/a/c（宇→osa/osac 其余键）', ['s','a','c'].every((k) => extraKeys.includes(k)), JSON.stringify(extraKeys));
+  // 字根高亮：宇 拆分「宀一{于下}」→ 宀 在 i 键、一 在 f 键（qwerty→gallman 翻译后）
+  const activeRoots = await page.$$eval('.zigen-item.active-root', (els) =>
+    els.map((el) => el.closest('.kb-key').dataset.cap + ':' + el.querySelector('.zigen-font').textContent)
+  );
+  console.log('字根高亮:', JSON.stringify(activeRoots));
+  check('字根条目高亮（宀/一等）', activeRoots.length >= 2, JSON.stringify(activeRoots));
 
   // ---- 3. 跟打判定 ----
   await page.click('#typing-area');

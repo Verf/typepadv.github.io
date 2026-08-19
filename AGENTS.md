@@ -51,3 +51,5 @@
 20. **自定义码表**：无内置拆分/字根，基准布局视为 qwerty、翻译默认开，导入后 `clearZigen` 清字根。
 21. **字根数据必须单字符条目**：字根 JSON 的 `f` 字段每个异体单独一条（星陈 397 条全单字符）。灵铭原始 roots_map.html 把异体合并（`艮`、`高`）导致格子内多字重叠；需从 yuling.roots.dict.yaml 的 `+ 声韵 = 根串` 拆分成单字符条目（灵铭 366 条）。
 22. **字根网格列数自适应**：`.zigen-grid` 固定 6 列在键宽不足时字根文字（13px）溢出格子互相重叠（星陈/灵铭都中招）。`roots.js` 渲染时按键实际宽度算列数 `Math.max(3, Math.min(6, Math.floor((keyWidth-8)/15)))` 内联到 gridTemplateColumns（星陈 QWERTY 63px→4 列、灵铭 Gallman 83px→5 列，溢出 0）。窄屏（<900px）键高仅 32px 放不下字根，是既有限制。
+23. **字根表须含族根串全部字根**：yuling.roots.dict.yaml 的 `+ 声韵 = 根串` 条目**不完整**（漏 `亻𬺰饣夂扌` 等基础字根），族根串（如 J 族 `凵寸亻生風卩亠𬺰入三饣夂向`）才是完整列表。生成 zigen-ling.json 必须**合并族根串 + 声韵条目并集**；声韵条目缺的字根从拆分表 per_roots 反查（`亻→Je→e`、`饣→Jsi→si`、`扌→To→o`），查不到默认给大码小写。星陈 zigen-star.json 同样有该问题（官方数据本身缺 `亻`），但星陈方案无此报障暂不处理。
+24. **多键高亮 + 字根高亮**：`updateTargetKey` 用 `setTargetKeys(container, primary, extras)` 高亮当前字全部编码涉及的键（首个编码首字母=`target` 实心，其余=`target-extra` 虚线浅色）；`highlightZigenForChar` 从拆分编码提取大写（大码）→ 翻译到当前布局键帽 → 在该键字根条目中匹配拆分字根（`f===root || f.includes(root)`）加 `.active-root`。时序坑：码表/拆分/字根三者异步加载，初始与切方案后都需在各自加载完成时补调 `updateTargetKey()`，否则字根高亮不出现（拆分未就绪时 `getChaifen` 返回 null）。
