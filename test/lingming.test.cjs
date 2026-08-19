@@ -18,6 +18,7 @@ const URL = 'http://localhost:4173/index.html';
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
   const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900 }); // 桌面视口（字根网格自适应依赖键宽）
   const errors = collectErrors(page);
   await page.goto(URL, { waitUntil: 'load' });
   await new Promise((r) => setTimeout(r, 3500)); // 等码表+字根
@@ -64,6 +65,24 @@ const URL = 'http://localhost:4173/index.html';
     return p ? (p.querySelector('.zigen-wrap') ? p.querySelector('.zigen-wrap').textContent : '') : '';
   });
   check('Gallman p 键含字根（电丰艮弓…）', pKeyRoots.includes('电') && pKeyRoots.includes('鱼'), pKeyRoots.slice(0, 60));
+  // 字根网格列数自适应（键宽 83px → 5 列），字根文字不溢出格子
+  const gridCheck = await page.evaluate(() => {
+    const key = [...document.querySelectorAll('.kb-key')].find((k) => k.dataset.cap === 'f');
+    if (!key || !key.querySelector('.zigen-grid')) return { missing: true };
+    const grid = key.querySelector('.zigen-grid');
+    const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+    const items = [...key.querySelectorAll('.zigen-item')];
+    const overflow = items.filter((it) => {
+      const f = it.querySelector('.zigen-font');
+      const fr = f.getBoundingClientRect();
+      const ir = it.getBoundingClientRect();
+      return fr.right > ir.right + 1 || fr.left < ir.left - 1;
+    }).length;
+    return { cols, total: items.length, overflow };
+  });
+  console.log('字根网格检查:', JSON.stringify(gridCheck));
+  check('灵铭字根网格列数自适应（3-6 列）', gridCheck.cols >= 3 && gridCheck.cols <= 6, 'cols=' + gridCheck.cols);
+  check('灵铭字根无文字溢出重叠', gridCheck.overflow === 0, 'overflow=' + gridCheck.overflow);
   // 提示仍原样（Gallman 布局 + 灵铭 → 不翻译）
   check('灵铭+Gallman 提示仍原样（的→e）', /的：e, fbxc/.test(gallmanState.hint), gallmanState.hint);
 

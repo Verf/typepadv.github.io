@@ -49,3 +49,5 @@
 18. **翻译开关语义**：设置「码表翻译到布局」控制编码是否从基准布局翻译到当前布局。内置 qwerty↔gallman 用 KEY_MAP 语义（`buildCodeTranslateMap` 直接复用 gallmanMap 及其反向，保证星陈行为不变）；自定义布局基准为 qwerty 时直接复用 layoutMap；灵铭+自定义布局退化为按 qwerty 物理对齐。切内置方案时开关自动设为该方案默认值。
 19. **字根渲染双模式**：星陈 `zigenMode='qwerty-base'`（数据键=QWERTY 大码，按当前布局反查键帽）；灵铭 `'keycap'`（数据键=Gallman 键帽直配）。灵铭字根条目字段 `s` 是声韵编码（如 da/e/ge），不是单字母小码。
 20. **自定义码表**：无内置拆分/字根，基准布局视为 qwerty、翻译默认开，导入后 `clearZigen` 清字根。
+21. **字根数据必须单字符条目**：字根 JSON 的 `f` 字段每个异体单独一条（星陈 397 条全单字符）。灵铭原始 roots_map.html 把异体合并（`艮`、`高`）导致格子内多字重叠；需从 yuling.roots.dict.yaml 的 `+ 声韵 = 根串` 拆分成单字符条目（灵铭 366 条）。
+22. **字根网格列数自适应**：`.zigen-grid` 固定 6 列在键宽不足时字根文字（13px）溢出格子互相重叠（星陈/灵铭都中招）。`roots.js` 渲染时按键实际宽度算列数 `Math.max(3, Math.min(6, Math.floor((keyWidth-8)/15)))` 内联到 gridTemplateColumns（星陈 QWERTY 63px→4 列、灵铭 Gallman 83px→5 列，溢出 0）。窄屏（<900px）键高仅 32px 放不下字根，是既有限制。

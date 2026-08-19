@@ -61,12 +61,17 @@ export function renderZigenOnKeyboard(container, layoutMap, enabled, opts = {}) 
     }
     if (!entries || entries.length === 0) return;
 
+    // 动态列数：按键宽自适应（字根 13px + 间距，避免文字溢出重叠）
+    const keyWidth = keyEl.getBoundingClientRect().width || 80;
+    const cols = Math.max(3, Math.min(6, Math.floor((keyWidth - 8) / 15)));
+    const gridStyle = `grid-template-columns:repeat(${cols},minmax(0,1fr));gap:2px 1px;`;
+
     // 字根网格
     const wrap = document.createElement('div');
     wrap.className = 'zigen-wrap';
     wrap.innerHTML = `
       <div class="zigen-big">${bigLabel}</div>
-      <div class="zigen-grid">
+      <div class="zigen-grid" style="${gridStyle}">
         ${entries.map((r) => {
           const small = (zigenMode === 'keycap') ? r.s : translateSmall(r.s, layoutMap);
           return `<span class="zigen-item" title="${r.f}（${bigLabel}${r.s}）">` +
