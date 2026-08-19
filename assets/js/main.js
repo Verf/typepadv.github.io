@@ -136,6 +136,7 @@ async function init() {
   // 字根拆分数据后台预加载（首次较大，之后走 IndexedDB）
   if (state.settings.showChaifen && scheme?.chaifen) {
     loadChaifenData(scheme.chaifen).then(() => {
+      updateCodeHint(); // 拆分就绪后补渲染码表提示中的拆分
       if (state.sessionView) updateTargetKey(); // 拆分就绪后刷新字根高亮
     }).catch(() => {});
   }
