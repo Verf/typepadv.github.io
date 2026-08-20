@@ -9,8 +9,8 @@ import {
   CUSTOM_LAYOUTS_KEY,
 } from './layout.js';
 import { renderKeyboard, setTargetKeys, flashKey, clearKeyStates } from './keyboard.js';
-import { loadZigenData, renderZigenOnKeyboard, clearZigen } from './roots.js';
-import { loadChaifenData, getChaifen } from './chaifen.js';
+import { loadZigenData, loadRootCandidates, candidateForIdentity, gallmingIdentityCodeForRootCode, renderZigenOnKeyboard, clearZigen } from './roots.js';
+import { loadChaifenData, getChaifen, tokenizeChaifenRoots, tokenizeChaifenCodes } from './chaifen.js';
 import { BUILTIN_SCHEMES, setCurrentScheme } from './schemes.js';
 import { TypingController } from './typing.js';
 import * as stats from './stats.js';
@@ -40,6 +40,22 @@ const state = {
   lastCursorPage: null, // 上次渲染的光标所在页（用于检测输入翻页）
   viewPage: null,       // 手动查看的页码（null = 跟随光标）
 };
+let rootLoadGeneration = 0;
+
+function loadSchemeRootAssets(scheme, schemeKey) {
+  const generation = ++rootLoadGeneration;
+  if (!scheme?.zigen?.url) return Promise.resolve(false);
+  return Promise.all([
+    loadZigenData(scheme.zigen.url),
+    loadRootCandidates(scheme.zigen.candidatesUrl),
+  ]).then(([zigen, candidates]) => {
+    if (!zigen || (scheme.zigen.candidatesUrl && !candidates) || generation !== rootLoadGeneration || state.settings.codetable !== schemeKey
+        || BUILTIN_SCHEMES[schemeKey] !== scheme) return false;
+    renderKeyboardDefault();
+    if (state.sessionView) updateTargetKey();
+    return true;
+  });
+}
 
 // ---- DOM 引用 ----
 // 防御：找不到元素时记录清晰错误，避免 "null.addEventListener" 类崩溃
@@ -128,10 +144,7 @@ async function init() {
   const scheme = BUILTIN_SCHEMES[state.settings.codetable] || null;
   setCurrentScheme(scheme);
   if (scheme?.zigen?.url) {
-    loadZigenData(scheme.zigen.url).then(() => {
-      renderKeyboardDefault(); // 重新渲染键盘（含字根）
-      if (state.sessionView) updateTargetKey(); // 字根就绪后刷新目标键+字根高亮
-    });
+    loadSchemeRootAssets(scheme, state.settings.codetable);
   }
   // 字根拆分数据后台预加载（首次较大，之后走 IndexedDB）
   if (state.settings.showChaifen && scheme?.chaifen) {
@@ -260,6 +273,7 @@ function renderKeyboardDefault() {
   // 渲染字根图（按方案：星陈按布局反查大码；灵铭按 Gallman 键帽直配）
   renderZigenOnKeyboard(dom.keyboard, state.layoutMap, state.settings.showZigen, {
     zigenMode: zigenModeFor(state.settings.codetable),
+    baseToCurrentMap: buildCodeTranslateMap(BUILTIN_SCHEMES[state.settings.codetable]?.codeBaseLayout || 'qwerty', state.settings.layout),
   });
 }
 
@@ -744,36 +758,39 @@ function highlightZigenForChar(ch) {
   const info = getChaifen(ch);
   if (!info) return;
   const { split, code } = info;
-  // 拆分字根串拆成单字符（忽略 {} 括号与组内异体）
-  const splitChars = Array.from(split).filter((c) => c !== '{' && c !== '}');
-  // 大码 = code 里的大写字母
-  const bigCodes = Array.from(code).filter((c) => /^[A-Z]$/.test(c));
-  // 每个大码对应一个（或一组）拆分字根：按大码顺序取拆分字根
-  // 拆分字根数 >= 大码数时按顺序对应；不足时大码多余部分跳过
-  const mapping = [];
-  let rootIdx = 0;
-  for (const big of bigCodes) {
-    // 该大码对应的字根：跳过括号组内异体后，取当前字根
-    const root = splitChars[rootIdx];
-    if (root !== undefined) mapping.push({ big, root });
-    rootIdx++;
+  const roots = tokenizeChaifenRoots(split);
+  const rootCodes = info.rootCodes || tokenizeChaifenCodes(code);
+  if (roots.length !== rootCodes.length) {
+    console.warn(`拆分根与根码数量不一致，跳过字根高亮: ${ch} ${split}/${code}`);
+    return;
   }
+  const mapping = rootCodes.map((rootCode, index) => ({
+    big: rootCode[0], root: roots[index], rootCode,
+  }));
   // 在该大码对应的键上查找字根条目
-  for (const { big, root } of mapping) {
+  for (const { big, root, rootCode } of mapping) {
     // 大码翻译到当前布局键帽
     const bigKey = translateToCurrentLayout(big);
     if (!bigKey) continue;
     const targetCap = bigKey.toLowerCase();
     // 在键盘上找该键
     const keyEl = [...dom.keyboard.querySelectorAll('.kb-key')].find((k) => k.dataset.cap === targetCap);
-    if (!keyEl) continue;
     // 在该键的字根条目中匹配字根（精确匹配 f 字段，或匹配拆分字根本身）
-    keyEl.querySelectorAll('.zigen-item').forEach((item) => {
-      const fEl = item.querySelector('.zigen-font');
-      if (!fEl) return;
-      const f = fEl.textContent;
-      // 匹配：条目字根 == 拆分字根，或条目字根包含拆分字根（异体组）
-      if (f === root || (f.length > 1 && f.includes(root))) {
+    const accepted = new Set([root]);
+    let candidate = null;
+    if (state.settings.codetable === 'ling-builtin') {
+      candidate = candidateForIdentity(root, gallmingIdentityCodeForRootCode(rootCode));
+      for (const glyph of candidate?.glyphs || []) accepted.add(glyph);
+    }
+    const gallmingBaseKey = candidate?.key || (state.settings.codetable === 'ling-builtin' ? rootCode[0].toLowerCase() : null);
+    const candidateKey = gallmingBaseKey
+      ? (buildCodeTranslateMap('gallman', state.settings.layout)?.[gallmingBaseKey] || gallmingBaseKey)
+      : null;
+    const searchKey = candidateKey
+      ? [...dom.keyboard.querySelectorAll('.kb-key')].find((k) => k.dataset.cap === candidateKey)
+      : keyEl;
+    searchKey?.querySelectorAll('.zigen-item').forEach((item) => {
+      if (accepted.has(item.dataset.root)) {
         item.classList.add('active-root');
       }
     });
@@ -1043,11 +1060,10 @@ function bindEvents() {
     }
     // 加载该方案字根图，完成后重绘键盘
     if (scheme?.zigen?.url) {
-      loadZigenData(scheme.zigen.url).then(() => {
-        renderKeyboardDefault();
-        if (state.sessionView) updateTargetKey();
-      });
+      loadSchemeRootAssets(scheme, state.settings.codetable);
     } else {
+      rootLoadGeneration++;
+      loadRootCandidates(null);
       clearZigen(dom.keyboard); // 自定义码表无字根
       if (state.sessionView) updateTargetKey();
     }

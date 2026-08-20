@@ -3,6 +3,7 @@
 
 import { createRequire } from 'module';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -355,6 +356,66 @@ async function importESM(rel) {
       assert.ok(sInfo2 && sInfo2.code === 'IFKc', '切回星陈后: 宇=IFKc，实际 ' + (sInfo2 && sInfo2.code));
     } finally {
       globalThis.fetch = origFetch;
+    }
+  });
+  await t('chaifen.js: 结构根与完整根码分词', async () => {
+    const chaifen = await importESM('assets/js/chaifen.js');
+    assert.deepEqual(chaifen.tokenizeChaifenRoots('{乞上}㐄...'), ['{乞上}', '㐄']);
+    assert.deepEqual(chaifen.tokenizeChaifenCodes('RSka'), ['R', 'Ska']);
+    assert.throws(() => chaifen.tokenizeChaifenRoots('{乞上'), /缺少右括号/);
+    assert.throws(() => chaifen.tokenizeChaifenRoots('乞}上'), /多余右括号/);
+  });
+  await t('chaifen.js: 星陈与 Gallming 全量拆分根码等长', async () => {
+    const chaifen = await importESM('assets/js/chaifen.js');
+    for (const file of ['chaifen.json', 'chaifen-ling.json']) {
+      const raw = JSON.parse(fs.readFileSync(new URL(`../assets/data/${file}`, import.meta.url), 'utf8'));
+      for (const [char, value] of Object.entries(raw)) {
+        const [split, code] = value.split('\t');
+        assert.equal(chaifen.tokenizeChaifenRoots(split).length, chaifen.tokenizeChaifenCodes(code).length, `${file}:${char}`);
+      }
+    }
+  });
+  await t('roots.js: Gallming 候选加载防旧请求回写并 fail-closed', async () => {
+    const roots = await importESM('assets/js/roots.js');
+    const originalFetch = globalThis.fetch;
+    const pending = new Map();
+    globalThis.fetch = (url) => new Promise((resolve) => pending.set(url, resolve));
+    const payload = (canonical) => ({
+      version: 1, layout: { damaOrder: 'B', perm: 'v' }, noCandidate: [],
+      candidates: [{ canonical, sourceCode: 'Bi', key: 'v', suffix: 'i', glyphs: [canonical], confidence: 'reviewed', provenance: 'maintainer-review' }],
+    });
+    try {
+      const oldLoad = roots.loadRootCandidates('old.json');
+      const newLoad = roots.loadRootCandidates('new.json');
+      pending.get('new.json')({ ok: true, json: async () => payload('新') });
+      await newLoad;
+      pending.get('old.json')({ ok: true, json: async () => payload('旧') });
+      await oldLoad;
+      assert.equal(roots.candidateForIdentity('新', 'Bi')?.glyphs[0], '新');
+      assert.equal(roots.candidateForIdentity('旧', 'Bi'), null);
+      globalThis.fetch = async () => ({ ok: false, status: 500 });
+      await roots.loadRootCandidates('broken.json');
+      assert.equal(roots.candidateForIdentity('新', 'Bi'), null);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+  await t('roots.js: 字根数据乱序响应不能覆盖新方案', async () => {
+    const roots = await importESM('assets/js/roots.js');
+    const originalFetch = globalThis.fetch;
+    const pending = new Map();
+    globalThis.fetch = (url) => new Promise((resolve) => pending.set(url, resolve));
+    try {
+      const oldLoad = roots.loadZigenData('old-roots.json');
+      const newLoad = roots.loadZigenData('new-roots.json');
+      const newest = { N: [{ f: '新', s: 'i' }] };
+      pending.get('new-roots.json')({ ok: true, json: async () => newest });
+      assert.deepEqual(await newLoad, newest);
+      pending.get('old-roots.json')({ ok: true, json: async () => ({ O: [{ f: '旧', s: 'i' }] }) });
+      assert.equal(await oldLoad, null);
+      assert.deepEqual(await roots.loadZigenData('new-roots.json'), newest);
+    } finally {
+      globalThis.fetch = originalFetch;
     }
   });
 

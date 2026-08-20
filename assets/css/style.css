@@ -3,7 +3,8 @@
 /* 宇浩字根字体（覆盖 PUA 区 F400-F8FF 的星陈字根） */
 @font-face {
   font-family: 'Yuniversus';
-  src: url('../fonts/Yuniversus.ttf') format('truetype');
+  src: url('../fonts/Yuniversus.woff') format('woff'),
+       url('../fonts/Yuniversus.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

@@ -106,6 +106,55 @@ const URL = 'http://localhost:4173/index.html';
   console.log('灵铭字根高亮:', JSON.stringify(activeRoots));
   check('灵铭字根条目高亮（白/勹/丶）', ['f:白','x:勹','l:丶'].every((s) => activeRoots.includes(s)), JSON.stringify(activeRoots));
 
+  async function selectCustomText(text) {
+    await page.evaluate((value) => {
+      document.getElementById('text-import-area').value = value;
+      document.getElementById('btn-save-text').click();
+    }, text);
+    await new Promise((r) => setTimeout(r, 600));
+    await page.evaluate(() => {
+      const items = [...document.querySelectorAll('.text-item')].filter((el) => el.textContent.includes('自定义'));
+      items.at(-1)?.click();
+    });
+    await new Promise((r) => setTimeout(r, 400));
+  }
+
+  // 结构根 tokenizer + 上游身份候选：年={乞上}㐄 / RSka。
+  await selectCustomText('年');
+  const yearState = await page.evaluate(() => ({
+    target: [...document.querySelectorAll('.kb-key.target,.kb-key.target-extra')].map((e) => e.dataset.cap),
+    active: [...document.querySelectorAll('.zigen-item.active-root')].map((e) => ({
+      key: e.closest('.kb-key').dataset.cap, root: e.dataset.root,
+    })),
+  }));
+  check('年按根码高亮 R/S 键', ['r', 's'].every((key) => yearState.target.includes(key)), JSON.stringify(yearState.target));
+  check('年只高亮㐄的 Yuniversus U+F48B', yearState.active.some((x) => x.key === 's' && x.root === '\uF48B'), JSON.stringify(yearState.active));
+  check('年不误亮同码{奉下}的 U+F409', !yearState.active.some((x) => x.root === '\uF409'), JSON.stringify(yearState.active));
+
+  const reviewedRoots = await page.$$eval('.zigen-item', (els) => els.map((e) => e.dataset.root));
+  check('维护者补充的基础根已渲染', ['⺈','忄','冫','卄','冎','ㄗ'].every((root) => reviewedRoots.includes(root)));
+  await selectCustomText('久');
+  let reviewedActive = await page.$$eval('.zigen-item.active-root', (els) => els.map((e) => `${e.closest('.kb-key').dataset.cap}:${e.dataset.root}`));
+  check('维护者确认根可真实高亮（久→⺈）', reviewedActive.includes('v:⺈'), JSON.stringify(reviewedActive));
+  await page.select('#layout-select', 'qwerty');
+  await new Promise((r) => setTimeout(r, 300));
+  await selectCustomText('墯');
+  reviewedActive = await page.$$eval('.zigen-item.active-root', (els) => els.map((e) => `${e.closest('.kb-key').dataset.cap}:${e.dataset.root}`));
+  check('Gallming 字根随基准布局翻译且保持高亮', reviewedActive.includes('y:忄'), JSON.stringify(reviewedActive));
+  await page.select('#layout-select', 'gallman');
+  await new Promise((r) => setTimeout(r, 300));
+
+  // 明确无显示候选：儍 的第二根 {鬯中}/Bi 只亮 v 键，不亮其同码字根。
+  await selectCustomText('儍');
+  const noCandidate = await page.evaluate(() => ({
+    vTarget: !!document.querySelector('.kb-key[data-cap="v"].target-extra,.kb-key[data-cap="v"].target'),
+    vActive: document.querySelectorAll('.kb-key[data-cap="v"] .zigen-item.active-root').length,
+  }));
+  check('无候选结构根仍高亮对应键', noCandidate.vTarget, JSON.stringify(noCandidate));
+  check('无候选结构根不猜测具体字根', noCandidate.vActive === 0, JSON.stringify(noCandidate));
+
+  await selectCustomText('的');
+
   // ---- 3. 灵铭 + QWERTY + 手动开翻译 → 反向翻译 ----
   await page.select('#layout-select', 'qwerty');
   await page.evaluate(() => {
@@ -134,6 +183,19 @@ const URL = 'http://localhost:4173/index.html';
   check('星陈提示恢复（的→d）', /的：d,/.test(starState.hint), starState.hint);
   // 星陈字根 25 键（QWERTY A-Y，Z 为空键）
   check('星陈字根恢复（QWERTY A-Y 25 键）', starState.zigenKeys.length === 25, 'count=' + starState.zigenKeys.length);
+  const starCandidateLeak = await page.$$eval('.zigen-item.active-root', (els) => els.some((e) => ['\uF48B','⺈'].includes(e.dataset.root)));
+  check('星陈不使用 Gallming 候选身份', starCandidateLeak === false);
+
+  // 快速切换时，较早 Gallming 请求完成也不得覆盖当前星陈字根。
+  await page.select('#codetable-select', 'ling-builtin');
+  await page.select('#codetable-select', 'star-builtin');
+  await new Promise((r) => setTimeout(r, 1200));
+  const rapidSwitch = await page.evaluate(() => ({
+    scheme: document.getElementById('codetable-select').value,
+    keys: [...document.querySelectorAll('.zigen-big')].length,
+    gallmingOnly: [...document.querySelectorAll('.zigen-item')].some((e) => e.dataset.root === '⺈'),
+  }));
+  check('快速切方案保持星陈字根原子生效', rapidSwitch.scheme === 'star-builtin' && rapidSwitch.keys === 25 && !rapidSwitch.gallmingOnly, JSON.stringify(rapidSwitch));
 
   check('无 JS 错误', errors.length === 0, JSON.stringify(errors));
 

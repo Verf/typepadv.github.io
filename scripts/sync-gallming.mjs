@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync,
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 export const UPSTREAM_URL = 'https://git.nas.verf.uk/verf/gallming.git';
 const DAMA_ORDER = 'BCDFGHJKLMNPQRSTVWXY';
@@ -34,7 +35,7 @@ export function parseChaifen(text) {
     if (!DELIVERY_CHAR(char) || !value?.startsWith('[') || !value.endsWith(']')) continue;
     const parts = value.slice(1, -1).split(',');
     if (parts.length < 2) throw new Error(`拆分条目格式错误: ${char}`);
-    result[char] = `${parts[0]}\t${parts[1]}`;
+    result[char] = `${parts[0]}\t${parts[1]}${parts[2] ? `\t${parts[2]}` : ''}`;
   }
   if (Object.keys(result).length < 1) throw new Error('gallming 拆分表没有可用单字条目');
   return result;
@@ -115,6 +116,76 @@ export function buildRoots(rootsText, chaifenText, permutation) {
   return output;
 }
 
+export function mergeReviewedRoots(roots, candidatePayload) {
+  const output = structuredClone(roots);
+  for (const candidate of candidatePayload.candidates || []) {
+    if (candidate.confidence !== 'reviewed') continue;
+    const entries = output[candidate.key] || (output[candidate.key] = []);
+    for (const glyph of candidate.glyphs || []) {
+      if (!entries.some((entry) => entry.f === glyph && entry.s === candidate.suffix)) {
+        entries.push({ f: glyph, s: candidate.suffix });
+      }
+    }
+  }
+  return output;
+}
+
+const sha256 = (data) => createHash('sha256').update(data).digest('hex');
+
+export function validateCandidateDelivery(payload, permutation, csv, font) {
+  if (!payload || payload.version !== 1 || !Array.isArray(payload.candidates) || !Array.isArray(payload.noCandidate)) {
+    throw new Error('gallming 字根候选 schema/version 无效');
+  }
+  if (payload.layout?.damaOrder !== DAMA_ORDER || payload.layout?.perm !== permutation) throw new Error('gallming 候选布局契约无效');
+  const keyMap = new Map(Array.from(DAMA_ORDER, (oldKey, i) => [oldKey, permutation[i]]));
+  const identities = new Set();
+  const glyphOwners = new Map();
+  for (const item of [...payload.candidates, ...payload.noCandidate]) {
+    if (typeof item.canonical !== 'string' || !item.canonical || !/^[A-Z][a-z]*$/u.test(item.sourceCode || '')) {
+      throw new Error('gallming 候选身份字段无效');
+    }
+    const expectedKey = keyMap.get(item.sourceCode[0]);
+    if (!expectedKey || item.key !== expectedKey || item.suffix !== item.sourceCode.slice(1)) {
+      throw new Error(`gallming 候选键位与 sourceCode 不一致: ${item.canonical}/${item.sourceCode}`);
+    }
+    const identity = `${item.canonical}\0${item.sourceCode}`;
+    if (identities.has(identity)) throw new Error(`gallming 候选身份重复: ${item.canonical}/${item.sourceCode}`);
+    identities.add(identity);
+    if ('glyphs' in item) {
+      const expectedProvenance = item.confidence === 'verified' ? 'self-chaifen'
+        : item.confidence === 'reviewed' ? 'maintainer-review' : null;
+      if (!expectedProvenance || item.provenance !== expectedProvenance || !Array.isArray(item.glyphs) || !item.glyphs.length) {
+        throw new Error(`gallming 候选置信信息无效: ${item.canonical}/${item.sourceCode}`);
+      }
+      for (const glyph of item.glyphs) {
+        if (typeof glyph !== 'string' || Array.from(glyph).length !== 1) throw new Error('gallming 候选 glyph 必须是单个码点');
+        const owner = glyphOwners.get(glyph);
+        if (owner) throw new Error(`gallming glyph 重复或身份冲突: ${glyph}`);
+        glyphOwners.set(glyph, identity);
+      }
+    } else if (item.status !== 'unresolved-reviewed' || typeof item.reason !== 'string') {
+      throw new Error(`gallming noCandidate 状态无效: ${item.canonical}`);
+    }
+  }
+  const meta = payload.sources;
+  if (!meta || meta.version !== 1 || meta.mapping?.file !== 'yuniversus-chaipua.csv' || meta.font?.file !== 'Yuniversus.woff'
+      || meta.mapping.url !== 'https://shurufa.app/fonts/yuniversus-chaipua.csv'
+      || meta.font.url !== 'https://shurufa.app/fonts/Yuniversus.woff') {
+    throw new Error('Yuniversus 资源契约无效');
+  }
+  if (sha256(csv) !== meta.mapping.sha256 || sha256(font) !== meta.font.sha256) throw new Error('Yuniversus 资源 SHA-256 不匹配');
+  const csvLines = csv.toString('utf8').trimEnd().split(/\r?\n/u);
+  if (csvLines.shift() !== 'yuniversus,chaipua,ispua' || !csvLines.length) throw new Error('Yuniversus CSV 表头或内容无效');
+  for (const line of csvLines) {
+    const [yuniversus, chaipua, ispua, extra] = line.split(',');
+    if (extra !== undefined || Array.from(yuniversus || '').length !== 1 || !/^(?:[0-9a-f]{4,6})?$/u.test(chaipua || '') || !/^(?:yes)?$/u.test(ispua || '')) {
+      throw new Error('Yuniversus CSV 行格式无效');
+    }
+  }
+  if (font.length < 12 || font.subarray(0, 4).toString('ascii') !== 'wOFF') throw new Error('Yuniversus 字体不是有效 WOFF');
+  return payload;
+}
+
 function pythonStyleJson(value) {
   if (Array.isArray(value)) return `[${value.map(pythonStyleJson).join(', ')}]`;
   if (value && typeof value === 'object') {
@@ -181,17 +252,25 @@ export function generate(source, projectRoot, expected = { codeEntries: 21653, c
   const chaifenYaml = read('out/gallming_chaifen.dict.yaml');
   const rootsYaml = read('data/yuling.roots.dict.yaml');
   const best = JSON.parse(read('out/best_perm.json'));
+  const candidatesText = read('out/gallming_root_candidates.json');
+  const candidates = JSON.parse(candidatesText);
   const permutation = Array.isArray(best.perm) ? best.perm.join('') : '';
   if (permutation.length !== 20 || new Set(permutation).size !== 20) throw new Error('best_perm.json 中的 perm 无效');
+  const csv = readFileSync(join(base, 'data/yuniversus-chaipua.csv'));
+  const font = readFileSync(join(base, 'data/Yuniversus.woff'));
+  validateCandidateDelivery(candidates, permutation, csv, font);
   const targets = {
     'assets/code-tables/mabiao-ling.txt': buildCodeTable(mainYaml),
     'assets/data/chaifen-ling.json': pythonStyleJson(parseChaifen(chaifenYaml)),
   };
-  targets['assets/data/zigen-ling.json'] = pythonStyleJson(buildRoots(rootsYaml, chaifenYaml, permutation));
+  targets['assets/data/zigen-ling.json'] = pythonStyleJson(mergeReviewedRoots(buildRoots(rootsYaml, chaifenYaml, permutation), candidates));
+  targets['assets/data/gallming-root-candidates.json'] = `${JSON.stringify(candidates, null, 2)}\n`;
+  targets['assets/data/yuniversus-chaipua.csv'] = csv;
+  targets['assets/fonts/Yuniversus.woff'] = font;
   const chaifen = JSON.parse(targets['assets/data/chaifen-ling.json']);
   if (targets['assets/code-tables/mabiao-ling.txt'].split('\n').filter(Boolean).length !== expected.codeEntries) throw new Error(`主码表条目数不是预期的 ${expected.codeEntries}`);
   if (Object.keys(chaifen).length !== expected.chars) throw new Error(`拆分字数不是预期的 ${expected.chars}`);
-  if (!targets['assets/code-tables/mabiao-ling.txt'].includes('ftmo\t宇\n') || chaifen['宇'] !== '宀一{于下}\tFTMo') throw new Error('关键编码校验失败：应为 宇=ftmo / FTMo');
+  if (!targets['assets/code-tables/mabiao-ling.txt'].includes('ftmo\t宇\n') || chaifen['宇'] !== '宀一{于下}\tFTMo\tFa-Ti-Mo') throw new Error('关键编码校验失败：应为 宇=ftmo / FTMo / Fa-Ti-Mo');
   return targets;
 }
 
@@ -215,8 +294,9 @@ export function main(argv = process.argv.slice(2), options = {}) {
     for (const [relative, contents] of Object.entries(targets)) {
       const target = join(projectRoot, relative);
       let current = null;
-      try { current = readFileSync(target, 'utf8').replace(/\r\n/gu, '\n'); } catch { /* missing */ }
-      if (current !== contents) {
+      const wanted = Buffer.isBuffer(contents) ? contents : Buffer.from(contents);
+      try { current = readFileSync(target); } catch { /* missing */ }
+      if (!current || !current.equals(wanted)) {
         changed.push(relative);
       }
     }

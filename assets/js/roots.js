@@ -8,21 +8,90 @@ import { QWERTY_ROWS } from './layout.js';
 
 let zigenCache = null; // { 键: [{f,s}], ... }
 let currentUrl = null;
+let zigenGeneration = 0;
+let rootCandidates = null;
+let candidateIndex = new Map();
+let candidateGeneration = 0;
+let gallmingFamilyKeys = new Map();
+let gallmingKeyFamilies = new Map();
 
 /** 加载字根数据（幂等；url 变化时重新加载） */
 export async function loadZigenData(url) {
   if (!url) return null;
   if (currentUrl === url && zigenCache) return zigenCache;
+  const generation = ++zigenGeneration;
   currentUrl = url;
   zigenCache = null;
   try {
     const resp = await fetch(url);
-    zigenCache = await resp.json();
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const payload = await resp.json();
+    if (generation !== zigenGeneration || currentUrl !== url) return null;
+    zigenCache = payload;
   } catch (e) {
     console.warn('字根数据加载失败', e);
-    zigenCache = {};
+    if (generation === zigenGeneration && currentUrl === url) zigenCache = {};
   }
   return zigenCache;
+}
+
+export async function loadRootCandidates(url) {
+  const generation = ++candidateGeneration;
+  if (!url) { rootCandidates = null; candidateIndex = new Map(); gallmingFamilyKeys = new Map(); gallmingKeyFamilies = new Map(); return null; }
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const payload = await resp.json();
+    if (payload?.version !== 1 || !Array.isArray(payload.candidates)) throw new Error('候选 schema/version 无效');
+    const nextIndex = new Map();
+    const order = payload.layout?.damaOrder;
+    const perm = payload.layout?.perm;
+    if (typeof order !== 'string' || typeof perm !== 'string' || order.length !== perm.length) throw new Error('候选布局字段无效');
+    const familyKeys = new Map(Array.from(order, (family, index) => [family, perm[index]]));
+    const glyphs = new Set();
+    for (const item of payload.candidates) {
+      if (!item?.canonical || !/^[A-Z][a-z]*$/u.test(item.sourceCode || '') || !Array.isArray(item.glyphs)) {
+        throw new Error('候选身份字段无效');
+      }
+      const expectedProvenance = item.confidence === 'verified' ? 'self-chaifen'
+        : item.confidence === 'reviewed' ? 'maintainer-review' : null;
+      if (!expectedProvenance || item.provenance !== expectedProvenance || !item.glyphs.length
+          || item.glyphs.some((glyph) => typeof glyph !== 'string' || Array.from(glyph).length !== 1)) {
+        throw new Error('候选置信或字形字段无效');
+      }
+      if (item.key !== familyKeys.get(item.sourceCode[0]) || item.suffix !== item.sourceCode.slice(1)) throw new Error('候选键位与 sourceCode 不一致');
+      const identity = `${item.canonical}\0${item.sourceCode}`;
+      if (nextIndex.has(identity)) throw new Error('候选身份重复');
+      for (const glyph of item.glyphs) {
+        if (glyphs.has(glyph)) throw new Error('候选 glyph 重复或冲突');
+        glyphs.add(glyph);
+      }
+      nextIndex.set(identity, item);
+    }
+    if (generation !== candidateGeneration) return null;
+    rootCandidates = payload;
+    candidateIndex = nextIndex;
+    gallmingFamilyKeys = familyKeys;
+    gallmingKeyFamilies = new Map(Array.from(order, (family, index) => [perm[index].toUpperCase(), family]));
+  } catch (e) {
+    console.warn('Gallming 字根候选加载失败', e);
+    if (generation === candidateGeneration) { rootCandidates = null; candidateIndex = new Map(); gallmingFamilyKeys = new Map(); gallmingKeyFamilies = new Map(); }
+  }
+  return rootCandidates;
+}
+
+export function candidateForIdentity(root, sourceCode) {
+  const candidate = candidateIndex.get(`${root}\0${sourceCode}`);
+  return candidate && (candidate.confidence === 'verified' || candidate.confidence === 'reviewed') ? candidate : null;
+}
+
+export function gallmingKeyForSourceCode(sourceCode) {
+  return gallmingFamilyKeys.get(sourceCode?.[0]) || null;
+}
+
+export function gallmingIdentityCodeForRootCode(rootCode) {
+  const family = gallmingKeyFamilies.get(rootCode?.[0]);
+  return family ? `${family}${rootCode.slice(1)}` : null;
 }
 
 /**
@@ -48,8 +117,9 @@ export function renderZigenOnKeyboard(container, layoutMap, enabled, opts = {}) 
     let entries = null;
     let bigLabel = cap.toUpperCase();
     if (zigenMode === 'keycap') {
-      // 灵铭：数据键即键帽（Gallman 键），直接匹配
-      entries = data[cap.toLowerCase()];
+      // Gallming 数据键基于 Gallman；按与编码相同的「基准布局→当前布局」映射定位。
+      const sourceCap = reverseLookup(opts.baseToCurrentMap, cap);
+      entries = data[sourceCap.toLowerCase()];
       bigLabel = cap.toUpperCase();
     } else {
       // 星陈：数据键为 QWERTY 大码，反查当前布局键帽对应的原 qwerty 字母
@@ -64,21 +134,33 @@ export function renderZigenOnKeyboard(container, layoutMap, enabled, opts = {}) 
     // 动态列数：按键宽自适应（字根 13px + 间距，避免文字溢出重叠）
     const keyWidth = keyEl.getBoundingClientRect().width || 80;
     const cols = Math.max(3, Math.min(6, Math.floor((keyWidth - 8) / 15)));
-    const gridStyle = `grid-template-columns:repeat(${cols},minmax(0,1fr));gap:2px 1px;`;
-
-    // 字根网格
     const wrap = document.createElement('div');
     wrap.className = 'zigen-wrap';
-    wrap.innerHTML = `
-      <div class="zigen-big">${bigLabel}</div>
-      <div class="zigen-grid" style="${gridStyle}">
-        ${entries.map((r) => {
-          const small = (zigenMode === 'keycap') ? r.s : translateSmall(r.s, layoutMap);
-          return `<span class="zigen-item" title="${r.f}（${bigLabel}${r.s}）">` +
-                 `<span class="zigen-font">${r.f}</span>` +
-                 `<span class="zigen-small">${small}</span></span>`;
-        }).join('')}
-      </div>`;
+    const bigEl = document.createElement('div');
+    bigEl.className = 'zigen-big';
+    bigEl.textContent = bigLabel;
+    const grid = document.createElement('div');
+    grid.className = 'zigen-grid';
+    grid.style.gridTemplateColumns = `repeat(${cols},minmax(0,1fr))`;
+    grid.style.gap = '2px 1px';
+    for (const r of entries) {
+      const small = (zigenMode === 'keycap') ? r.s : translateSmall(r.s, layoutMap);
+      const item = document.createElement('span');
+      item.className = 'zigen-item';
+      item.dataset.root = r.f;
+      item.dataset.big = cap.toLowerCase();
+      item.dataset.small = r.s;
+      item.title = `${r.f}（${bigLabel}${r.s}）`;
+      const font = document.createElement('span');
+      font.className = 'zigen-font';
+      font.textContent = r.f;
+      const smallEl = document.createElement('span');
+      smallEl.className = 'zigen-small';
+      smallEl.textContent = small;
+      item.append(font, smallEl);
+      grid.append(item);
+    }
+    wrap.append(bigEl, grid);
     keyEl.textContent = ''; // 清除原键帽字母（大码已代表）
     keyEl.prepend(wrap);
   });
@@ -123,4 +205,4 @@ export function clearZigen(container) {
   container.querySelectorAll('.zigen-wrap').forEach((el) => el.remove());
 }
 
-export default { loadZigenData, renderZigenOnKeyboard, clearZigen };
+export default { loadZigenData, loadRootCandidates, candidateForIdentity, gallmingKeyForSourceCode, gallmingIdentityCodeForRootCode, renderZigenOnKeyboard, clearZigen };

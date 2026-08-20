@@ -50,8 +50,33 @@ export function getChaifen(ch) {
   if (!cache) return null;
   const v = cache.get(ch);
   if (!v) return null;
-  const [split, code] = v.split('\t');
-  return { split, code };
+  const [split, code, perRoots] = v.split('\t');
+  return { split, code, rootCodes: perRoots ? perRoots.split('-') : null };
+}
+
+/** 把拆分解析为语义根；花括号结构整体占一个根位，省略标记不占位。 */
+export function tokenizeChaifenRoots(split) {
+  const roots = [];
+  const chars = Array.from(split || '');
+  for (let i = 0; i < chars.length;) {
+    if (chars[i] === '.' && chars.slice(i, i + 3).join('') === '...') { i += 3; continue; }
+    if (chars[i] === '…') { i++; continue; }
+    if (chars[i] === '{') {
+      const end = chars.indexOf('}', i + 1);
+      if (end < 0) throw new Error(`拆分结构根缺少右括号: ${split}`);
+      roots.push(chars.slice(i, end + 1).join(''));
+      i = end + 1;
+      continue;
+    }
+    if (chars[i] === '}') throw new Error(`拆分结构根存在多余右括号: ${split}`);
+    roots.push(chars[i++]);
+  }
+  return roots;
+}
+
+/** 大写字母开始、后接零个或多个小写字母的完整根码。 */
+export function tokenizeChaifenCodes(code) {
+  return (code || '').match(/[A-Z][a-z]*/gu) || [];
 }
 
 /**
@@ -74,4 +99,4 @@ export function translateChaifenCode(code, layoutMap) {
   return out;
 }
 
-export default { loadChaifenData, getChaifen, translateChaifenCode };
+export default { loadChaifenData, getChaifen, tokenizeChaifenRoots, tokenizeChaifenCodes, translateChaifenCode };

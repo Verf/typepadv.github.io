@@ -3,13 +3,14 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync, renameSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { buildCodeTable, buildRoots, locateUpstreamRoot, main, parseChaifen, transactionalWrite } from '../scripts/sync-gallming.mjs';
+import { createHash } from 'node:crypto';
+import { buildCodeTable, buildRoots, locateUpstreamRoot, main, mergeReviewedRoots, parseChaifen, transactionalWrite, validateCandidateDelivery } from '../scripts/sync-gallming.mjs';
 
 const yaml = (body) => `---\nname: test\n...\n${body}`;
 
 assert.equal(buildCodeTable(yaml('宇\tftmo\t1\n宇宙\tword\t1\n')), 'ftmo\t宇\n');
 assert.deepEqual(parseChaifen(yaml('宇\t[宀一{于下},FTMo,Fa-Ti-Mo]\n')), {
-  宇: '宀一{于下}\tFTMo',
+  宇: '宀一{于下}\tFTMo\tFa-Ti-Mo',
 });
 
 const oldKeys = 'BCDFGHJKLMNPQRSTVWXY';
@@ -18,6 +19,10 @@ const groups = Array.from(oldKeys, (key) => `${key.toLowerCase()}\t/lm${key.toLo
 const rootSource = yaml(`${groups}\n+ e = 臣\t/lmb\n`);
 const roots = buildRoots(rootSource, yaml('字\t[臣,Ve,Ve]\n'), permutation);
 assert.deepEqual(roots.v, [{ f: 'b', s: 'b' }, { f: '臣', s: 'e' }]);
+assert.deepEqual(mergeReviewedRoots(roots, { candidates: [
+  { canonical: '⺈', confidence: 'reviewed', key: 'v', suffix: 'i', glyphs: ['⺈'] },
+  { canonical: '臣', confidence: 'verified', key: 'v', suffix: 'e', glyphs: ['臣'] },
+] }).v.at(-1), { f: '⺈', s: 'i' });
 
 assert.throws(
   () => buildRoots(yaml(`${groups}\n+ e = 臣\t/lmb\n+ i = 臣\t/lmb\n`), yaml('字\t[臣,Ve,Ve]\n'), permutation),
@@ -49,8 +54,22 @@ writeFileSync(join(e2eSource, 'out/gallming.dict.yaml'), yaml('宇\tftmo\t1\n'))
 writeFileSync(join(e2eSource, 'out/gallming_chaifen.dict.yaml'), yaml('宇\t[宀一{于下},FTMo,Fa-Ti-Mo]\n'));
 writeFileSync(join(e2eSource, 'data/yuling.roots.dict.yaml'), rootSource);
 writeFileSync(join(e2eSource, 'out/best_perm.json'), JSON.stringify({ perm: Array.from(permutation) }));
+const fixtureCsv = Buffer.from('yuniversus,chaipua,ispua\n字,,\n');
+const fixtureWoff = Buffer.from('wOFFfixture-data');
+const hash = (data) => createHash('sha256').update(data).digest('hex');
+const fixtureCandidates = { version: 1, layout: { damaOrder: oldKeys, perm: permutation }, candidates: [], noCandidate: [], sources: {
+  version: 1,
+  mapping: { url: 'https://shurufa.app/fonts/yuniversus-chaipua.csv', file: 'yuniversus-chaipua.csv', sha256: hash(fixtureCsv) },
+  font: { url: 'https://shurufa.app/fonts/Yuniversus.woff', file: 'Yuniversus.woff', sha256: hash(fixtureWoff) },
+} };
+writeFileSync(join(e2eSource, 'out/gallming_root_candidates.json'), JSON.stringify(fixtureCandidates));
+writeFileSync(join(e2eSource, 'data/yuniversus-chaipua.csv'), fixtureCsv);
+writeFileSync(join(e2eSource, 'data/Yuniversus.woff'), fixtureWoff);
 main(['--source', e2eSource], { projectRoot: e2eProject, expected: { codeEntries: 1, chars: 1 } });
 assert.equal(readFileSync(join(e2eProject, 'assets/code-tables/mabiao-ling.txt'), 'utf8'), 'ftmo\t宇\n');
+assert.deepEqual(readFileSync(join(e2eProject, 'assets/fonts/Yuniversus.woff')), fixtureWoff);
+assert.throws(() => validateCandidateDelivery({ ...fixtureCandidates, version: 2 }, permutation, fixtureCsv, fixtureWoff), /schema\/version/u);
+assert.throws(() => validateCandidateDelivery(fixtureCandidates, permutation, fixtureCsv, Buffer.from('wOFFchanged')), /SHA-256/u);
 main(['--source', e2eSource, '--check'], { projectRoot: e2eProject, expected: { codeEntries: 1, chars: 1 } });
 writeFileSync(join(e2eProject, 'assets/code-tables/mabiao-ling.txt'), 'stale\n');
 assert.throws(() => main(['--source', e2eSource, '--check'], { projectRoot: e2eProject, expected: { codeEntries: 1, chars: 1 } }), /不是最新版本/u);
@@ -106,6 +125,19 @@ const cleanupResult = transactionCase('cleanup');
 assert.equal(cleanupResult.error, null);
 assert.deepEqual([cleanupResult.a, cleanupResult.b], ['new-a', 'new-b']);
 assert.equal(cleanupResult.warnings.length, 2);
+
+// 二进制目标在安装失败时也必须逐字节回滚。
+{
+  const dir = mkdtempSync(join(tmpdir(), 'gallming-binary-transaction-'));
+  const a = join(dir, 'a.woff'); const b = join(dir, 'b.woff');
+  writeFileSync(a, Buffer.from([0, 255])); writeFileSync(b, Buffer.from([1, 254]));
+  assert.throws(() => transactionalWrite([[a, Buffer.from([2, 253])], [b, Buffer.from([3, 252])]], {
+    renameSync(from, to) { if (from.includes('.tmp-') && to === b) throw new Error('binary install'); renameSync(from, to); },
+  }), /binary install/u);
+  assert.deepEqual(readFileSync(a), Buffer.from([0, 255]));
+  assert.deepEqual(readFileSync(b), Buffer.from([1, 254]));
+  rmSync(dir, { recursive: true, force: true });
+}
 
 // --source 失败时也绝不能删除用户提供的本地目录。
 const localSource = mkdtempSync(join(tmpdir(), 'gallming-source-safety-'));
