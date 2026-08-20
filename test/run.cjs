@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 4173;
+const NULL_DEVICE = process.platform === 'win32' ? 'NUL' : '/dev/null';
 let server = null;
 
 function startServer() {
@@ -16,7 +17,7 @@ function startServer() {
     let tries = 0;
     const check = () => {
       try {
-        execSync(`curl -s -o /dev/null -w "%{http_code}" http://localhost:${PORT}/index.html`);
+        execSync(`curl -s -o ${NULL_DEVICE} -w "%{http_code}" http://localhost:${PORT}/index.html`);
         resolve();
       } catch {
         if (++tries > 30) reject(new Error('服务器启动超时'));
@@ -29,6 +30,7 @@ function startServer() {
 }
 
 async function main() {
+  fs.mkdirSync(path.join(__dirname, 'artifacts'), { recursive: true });
   await startServer();
   console.log('✅ 服务器已启动 http://localhost:' + PORT);
   const tests = fs.readdirSync(__dirname).filter((f) => f.endsWith('.test.cjs'));

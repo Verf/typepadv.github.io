@@ -138,8 +138,8 @@ async function importESM(rel) {
     assert.strictEqual(m.p, 'q');
     assert.strictEqual(m.l, 'w');
     assert.strictEqual(m.d, 'e');
-    // 灵铭编码 ftmo（gallman 原生）翻译到 qwerty：f→u, t→w, m→m, o→i
-    assert.strictEqual(layout.translateCode('ftmo', m), 'uwmi');
+    // 灵铭编码 ftmo（Gallman 原生）翻译到 QWERTY：f→u, t→d, m→m, o→i
+    assert.strictEqual(layout.translateCode('ftmo', m), 'udmi');
   });
   t('translateCodeToLayout: 星陈 ifk 翻译 gallman 为 osa（与集成测试一致）', () => {
     const m = layout.buildCodeTranslateMap('qwerty', 'gallman');
@@ -280,7 +280,7 @@ async function importESM(rel) {
   });
 
   // ---- 灵铭方案（内置）----
-  console.log('\n[lingming] 灵铭内置方案');
+  console.log('\n[gallming] 灵铭内置方案');
   await t('灵铭码表可解析（code-right 自动检测）', async () => {
     const fs = await import('fs');
     const text = fs.readFileSync(new URL('../assets/code-tables/mabiao-ling.txt', import.meta.url), 'utf8');

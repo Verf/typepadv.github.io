@@ -45,7 +45,7 @@
 
 ### 多方案（星陈 + 灵铭）
 16. **方案注册表**：内置方案集中在 `assets/js/schemes.js`（`BUILTIN_SCHEMES`），每方案声明码表/拆分/字根 URL + `codeBaseLayout`（编码基准布局：星陈=qwerty、灵铭=gallman）+ `defaultTranslate`。新增方案只需改注册表+加数据文件。
-17. **灵铭方案**：用户自研「灵明字根 × Gallman 布局重排」，码表编码原生是 Gallman 键帽（`宇→frmo`），显示**不需要翻译**（默认关翻译开关）。数据源：`git.nas.verf.uk/verf/mycode` 仓库 gallming 交付物（内网，SSRF 工具抓不到但 shell git clone 可以）。数据文件：`mabiao-ling.txt`（21,653 行）、`chaifen-ling.json`（20,993 字）、`zigen-ling.json`（20 Gallman 键、238 字根）。
+17. **灵铭方案（英文名 gallming）**：用户自研「灵明字根 × Gallman 布局重排」，码表编码原生是 Gallman 键帽（`宇→ftmo`），显示**不需要翻译**（默认关翻译开关）。唯一上游为 `https://git.nas.verf.uk/verf/gallming.git`，用 `npm run sync:gallming` 同步、`npm run check:gallming` 校验。数据文件 `mabiao-ling.txt`（21,653 行）、`chaifen-ling.json`（20,993 字）、`zigen-ling.json` 的 `ling` 名称仅为兼容性遗留。
 18. **翻译开关语义**：设置「码表翻译到布局」控制编码是否从基准布局翻译到当前布局。内置 qwerty↔gallman 用 KEY_MAP 语义（`buildCodeTranslateMap` 直接复用 gallmanMap 及其反向，保证星陈行为不变）；自定义布局基准为 qwerty 时直接复用 layoutMap；灵铭+自定义布局退化为按 qwerty 物理对齐。切内置方案时开关自动设为该方案默认值。
 19. **字根渲染双模式**：星陈 `zigenMode='qwerty-base'`（数据键=QWERTY 大码，按当前布局反查键帽）；灵铭 `'keycap'`（数据键=Gallman 键帽直配）。灵铭字根条目字段 `s` 是声韵编码（如 da/e/ge），不是单字母小码。
 20. **自定义码表**：无内置拆分/字根，基准布局视为 qwerty、翻译默认开，导入后 `clearZigen` 清字根。

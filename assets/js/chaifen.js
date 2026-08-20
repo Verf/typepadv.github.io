@@ -1,5 +1,5 @@
 // chaifen.js - 单字字根拆分表（按方案多源加载 + IndexedDB 缓存）
-// 数据源：星陈 assets/data/chaifen.json；灵铭 assets/data/chaifen-ling.json
+// 数据源：星陈 assets/data/chaifen.json；灵铭（gallming）assets/data/chaifen-ling.json（兼容性遗留文件名）
 // 结构：{字: "拆分\t编码"}，fetch 懒加载 + IndexedDB 缓存
 
 import { idb, STORE_NAMES } from './storage.js';

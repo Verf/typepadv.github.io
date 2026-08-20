@@ -35,7 +35,7 @@
 - 布局不影响判定（判定始终按上屏文字，与键盘布局无关）
 
 ### 5. 提示码表
-- 内置**宇浩星陈**全量码表（shurufa.app/mabiao-star.txt）+ **灵铭**方案（mabiao-ling.txt，用户自研灵明×Gallman 重排），格式「编码\t汉字」，编码在左
+- 内置**宇浩星陈**全量码表（shurufa.app/mabiao-star.txt）+ **灵铭（gallming）**方案（兼容性遗留文件名 mabiao-ling.txt，灵明×Gallman 重排），格式「编码\t汉字」，编码在左；灵铭资产可用 `npm run sync:gallming` 从 gallming 上游重建
 - 解析器**通用兼容设计**：方向自动检测（编码在左/在右均支持）、兼容 fcitx/Rime 双方向格式
 - 单字匹配优先（首版只做单字编码提示，词编码提示留后续）
 - 支持用户上传自定义码表（存 IndexedDB）

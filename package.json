@@ -7,6 +7,9 @@
     "test": "node test/run.cjs",
     "test:unit": "node test/unit.test.js",
     "test:smoke": "node test/run.cjs",
+    "test:gallming-sync": "node test/sync-gallming.test.mjs",
+    "sync:gallming": "node scripts/sync-gallming.mjs",
+    "check:gallming": "node scripts/sync-gallming.mjs --check",
     "deploy": "node deploy.mjs",
     "version": "node build-version.mjs"
   },

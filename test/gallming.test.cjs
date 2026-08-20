@@ -1,4 +1,4 @@
-// test/lingming.test.cjs - 灵铭内置方案浏览器集成测试
+// test/gallming.test.cjs - 灵铭（gallming）内置方案浏览器集成测试
 // 验证：
 //   1. 码表下拉含灵铭
 //   2. 切灵铭后：提示显示 Gallman 原生编码（不翻译）、翻译开关自动关
@@ -137,7 +137,7 @@ const URL = 'http://localhost:4173/index.html';
 
   check('无 JS 错误', errors.length === 0, JSON.stringify(errors));
 
-  await page.screenshot({ path: 'test/artifacts/lingming.png', fullPage: false });
+  await page.screenshot({ path: 'test/artifacts/gallming.png', fullPage: false });
   await browser.close();
   console.log(`\n灵铭集成测试: ${pass} 通过, ${fail} 失败`);
   process.exit(fail > 0 ? 1 : 0);

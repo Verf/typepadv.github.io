@@ -1,7 +1,7 @@
 // roots.js - 字根图：在虚拟键盘键面上渲染字根网格（按方案多源）
 // 星陈数据源：assets/data/zigen-star.json（397字根，26键A-Y，Z为空）
 //   结构：{ "A": [{f: 字根, s: 小码}, ...], ... } 大码 A-Y
-// 灵铭数据源：assets/data/zigen-ling.json（238字根，20个Gallman辅音键）
+// 灵铭（gallming）数据源：assets/data/zigen-ling.json（文件名为兼容性遗留，20个 Gallman 辅音键）
 //   结构：{ "p": [{f: 字根, s: 声韵}, ...], ... } 键帽=Gallman物理键
 
 import { QWERTY_ROWS } from './layout.js';
