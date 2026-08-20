@@ -73,6 +73,14 @@ const URL = 'http://localhost:4173/index.html';
       : '';
   });
   check('Gallman m 键含单人旁 亻（他→MSe）', mKeyRoots.includes('亻'), 'm 键字根: ' + mKeyRoots.slice(0, 60));
+  const cIEntries = await page.$$eval('.kb-key', (els) => {
+    const key = els.find((el) => el.dataset.cap === 'c');
+    return key ? [...key.querySelectorAll('.zigen-item')]
+      .filter((el) => el.dataset.small === 'i')
+      .map((el) => el.dataset.root) : [];
+  });
+  check('c/i 只保留一个标准纟（不重复渲染 PUA 替身）',
+    cIEntries.filter((root) => root === '纟').length === 1 && !cIEntries.includes(''), JSON.stringify(cIEntries));
   // 字根网格列数自适应（键宽 83px → 5 列），字根文字不溢出格子
   const gridCheck = await page.evaluate(() => {
     const key = [...document.querySelectorAll('.kb-key')].find((k) => k.dataset.cap === 'f');

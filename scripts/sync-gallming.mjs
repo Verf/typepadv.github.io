@@ -116,19 +116,36 @@ export function buildRoots(rootsText, chaifenText, permutation) {
   return output;
 }
 
-export function mergeReviewedRoots(roots, candidatePayload) {
+export function mergeCandidateDisplayRoots(roots, candidatePayload) {
   const output = structuredClone(roots);
   for (const candidate of candidatePayload.candidates || []) {
-    if (candidate.confidence !== 'reviewed') continue;
     const entries = output[candidate.key] || (output[candidate.key] = []);
+    const hasCanonical = entries.some((entry) => entry.f === candidate.canonical && entry.s === candidate.suffix);
+
+    // Yuniversus 的 PUA 显示字形有时与族根中的标准字根是同一语义身份。
+    // 同时渲染两者会在字体中显示成重复字根（例如 c/i 的两个“纟”）。
+    // 标准字根仍可精确匹配；只有缺少标准根时才保留 PUA 作为显示候选。
+    if (hasCanonical) {
+      const hiddenGlyphs = new Set((candidate.glyphs || []).filter((glyph) => glyph !== candidate.canonical));
+      if (hiddenGlyphs.size) {
+        output[candidate.key] = entries.filter((entry) => !(entry.s === candidate.suffix && hiddenGlyphs.has(entry.f)));
+      }
+    }
+
+    if (candidate.confidence !== 'reviewed') continue;
+    const targetEntries = output[candidate.key];
     for (const glyph of candidate.glyphs || []) {
-      if (!entries.some((entry) => entry.f === glyph && entry.s === candidate.suffix)) {
-        entries.push({ f: glyph, s: candidate.suffix });
+      if (!targetEntries.some((entry) => entry.f === glyph && entry.s === candidate.suffix)) {
+        targetEntries.push({ f: glyph, s: candidate.suffix });
       }
     }
   }
   return output;
 }
+
+// Compatibility export for existing consumers/tests. It now handles all display candidates,
+// not only manually reviewed additions.
+export const mergeReviewedRoots = mergeCandidateDisplayRoots;
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 
@@ -263,7 +280,7 @@ export function generate(source, projectRoot, expected = { codeEntries: 21653, c
     'assets/code-tables/mabiao-ling.txt': buildCodeTable(mainYaml),
     'assets/data/chaifen-ling.json': pythonStyleJson(parseChaifen(chaifenYaml)),
   };
-  targets['assets/data/zigen-ling.json'] = pythonStyleJson(mergeReviewedRoots(buildRoots(rootsYaml, chaifenYaml, permutation), candidates));
+  targets['assets/data/zigen-ling.json'] = pythonStyleJson(mergeCandidateDisplayRoots(buildRoots(rootsYaml, chaifenYaml, permutation), candidates));
   targets['assets/data/gallming-root-candidates.json'] = `${JSON.stringify(candidates, null, 2)}\n`;
   targets['assets/data/yuniversus-chaipua.csv'] = csv;
   targets['assets/fonts/Yuniversus.woff'] = font;

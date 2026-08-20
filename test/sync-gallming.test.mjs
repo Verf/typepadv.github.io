@@ -23,6 +23,9 @@ assert.deepEqual(mergeReviewedRoots(roots, { candidates: [
   { canonical: '⺈', confidence: 'reviewed', key: 'v', suffix: 'i', glyphs: ['⺈'] },
   { canonical: '臣', confidence: 'verified', key: 'v', suffix: 'e', glyphs: ['臣'] },
 ] }).v.at(-1), { f: '⺈', s: 'i' });
+assert.deepEqual(mergeReviewedRoots({ c: [{ f: '纟', s: 'i' }, { f: '', s: 'i' }] }, { candidates: [
+  { canonical: '纟', confidence: 'verified', key: 'c', suffix: 'i', glyphs: [''] },
+] }).c, [{ f: '纟', s: 'i' }], '标准根存在时不重复渲染同身份 PUA 字形');
 
 assert.throws(
   () => buildRoots(yaml(`${groups}\n+ e = 臣\t/lmb\n+ i = 臣\t/lmb\n`), yaml('字\t[臣,Ve,Ve]\n'), permutation),
