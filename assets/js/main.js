@@ -284,16 +284,17 @@ async function populateCodetableOptions() {
 }
 
 async function loadCodeTable(key) {
+  const scheme = BUILTIN_SCHEMES[key];
+  const cacheKey = scheme?.codeTable?.cacheKey || key;
   // 先查缓存
-  let parsed = await codeTableStore.getCache(key);
+  let parsed = await codeTableStore.getCache(cacheKey);
   if (!parsed) {
-    const scheme = BUILTIN_SCHEMES[key];
     if (scheme) {
       // fetch 内置
       const resp = await fetch(scheme.codeTable.url);
       const text = await resp.text();
       parsed = parseCodeTable(text);
-      await codeTableStore.saveCache(key, parsed);
+      await codeTableStore.saveCache(cacheKey, parsed);
     } else {
       const t = await codeTableStore.get(key);
       if (t) parsed = parseCodeTable(t.content);

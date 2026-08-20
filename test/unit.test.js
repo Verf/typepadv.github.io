@@ -138,8 +138,8 @@ async function importESM(rel) {
     assert.strictEqual(m.p, 'q');
     assert.strictEqual(m.l, 'w');
     assert.strictEqual(m.d, 'e');
-    // 灵铭编码 frmo（gallman 原生）翻译到 qwerty：f→u, r→s, m→m, o→i
-    assert.strictEqual(layout.translateCode('frmo', m), 'usmi');
+    // 灵铭编码 ftmo（gallman 原生）翻译到 qwerty：f→u, t→w, m→m, o→i
+    assert.strictEqual(layout.translateCode('ftmo', m), 'uwmi');
   });
   t('translateCodeToLayout: 星陈 ifk 翻译 gallman 为 osa（与集成测试一致）', () => {
     const m = layout.buildCodeTranslateMap('qwerty', 'gallman');
@@ -287,11 +287,11 @@ async function importESM(rel) {
     const p = parser.parseCodeTable(text);
     assert.strictEqual(p.direction, 'code-left'); // 已转为编码在左
     assert.ok(p.stats.uniqueChars > 20000, '灵铭码表应覆盖 2 万+ 字，实际 ' + p.stats.uniqueChars);
-    // 关键字编码（Gallman 原生）
-    assert.deepStrictEqual(p.charToCodes.get('宇'), ['frmo']);
-    assert.deepStrictEqual(p.charToCodes.get('的'), ['e', 'fbxc']);
+    // 关键字编码（Gallman 原生，v2 大码重排：vcdtphmfyjrxbgslnwkq）
+    assert.deepStrictEqual(p.charToCodes.get('宇'), ['ftmo']);
+    assert.deepStrictEqual(p.charToCodes.get('的'), ['e', 'fbxl']);
     assert.deepStrictEqual(p.charToCodes.get('中'), ['di', 'dfi']);
-    assert.deepStrictEqual(p.charToCodes.get('一'), ['ri']);
+    assert.deepStrictEqual(p.charToCodes.get('一'), ['ti']);
   });
   await t('灵铭拆分表已转 JSON 且结构正确', async () => {
     const fs = await import('fs');
@@ -301,7 +301,7 @@ async function importESM(rel) {
     assert.ok(yu && yu.includes('\t'), '宇 的拆分应有 \t 分隔');
     const [split, code] = yu.split('\t');
     assert.ok(split.includes('宀'), '宇 拆分含 宀');
-    assert.strictEqual(code, 'FRMo'); // 灵铭全码（Gallman 原生）
+    assert.strictEqual(code, 'FTMo'); // 灵铭全码（Gallman 原生，v2 重排）
   });
   await t('灵铭字根表已转 JSON（Gallman 键帽直配）', async () => {
     const fs = await import('fs');
@@ -347,7 +347,7 @@ async function importESM(rel) {
       assert.ok(sInfo && sInfo.code === 'IFKc', '星陈拆分: 宇=IFKc，实际 ' + (sInfo && sInfo.code));
       await chaifen.loadChaifenData(ling.chaifen);
       const lInfo = chaifen.getChaifen('宇');
-      assert.ok(lInfo && lInfo.code === 'FRMo', '灵铭拆分: 宇=FRMo，实际 ' + (lInfo && lInfo.code));
+      assert.ok(lInfo && lInfo.code === 'FTMo', '灵铭拆分: 宇=FTMo，实际 ' + (lInfo && lInfo.code));
       assert.ok(lInfo.split.includes('宀'), '灵铭拆分含 宀');
       // 切回星陈（再次重新加载）
       await chaifen.loadChaifenData(star.chaifen);

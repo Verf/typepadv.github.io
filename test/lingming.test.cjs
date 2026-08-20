@@ -46,8 +46,8 @@ const URL = 'http://localhost:4173/index.html';
   check('切换后方案为 ling-builtin', lingState.codetable === 'ling-builtin');
   check('翻译开关自动关闭（灵铭默认）', lingState.translateChecked === false, 'checked=' + lingState.translateChecked);
   // 当前字「的」→ 灵铭编码 e（不翻译，原样）
-  check('灵铭提示原样显示（的→e）', /的：e, fbxc/.test(lingState.hint), lingState.hint);
-  check('灵铭拆分提示（的→白勹丶FbXC）', lingState.hint.includes('拆') && lingState.hint.includes('FbXC'), lingState.hint);
+  check('灵铭提示原样显示（的→e, fbxl）', /的：e, fbxl/.test(lingState.hint), lingState.hint);
+  check('灵铭拆分提示（的→白勹丶FbXL）', lingState.hint.includes('拆') && lingState.hint.includes('FbXL'), lingState.hint);
 
   // ---- 2. 灵铭 + Gallman 布局：字根按键帽直配 ----
   await page.select('#layout-select', 'gallman');
@@ -65,14 +65,14 @@ const URL = 'http://localhost:4173/index.html';
     return p ? (p.querySelector('.zigen-wrap') ? p.querySelector('.zigen-wrap').textContent : '') : '';
   });
   check('Gallman p 键含字根（电丰艮弓…）', pKeyRoots.includes('电') && pKeyRoots.includes('鱼'), pKeyRoots.slice(0, 60));
-  // 回归：m 键（旧 J 族）应含单人旁 亻（「他」拆 Mwe，亻 需在 m 键字根表）
+  // 回归：m 键（旧 J 族）应含单人旁 亻（「他」拆 MSe，亻 需在 m 键字根表）
   const mKeyRoots = await page.$$eval('.kb-key', (els) => {
     const m = els.find((k) => k.dataset.cap === 'm');
     return m && m.querySelector('.zigen-wrap')
       ? [...m.querySelectorAll('.zigen-font')].map((e) => e.textContent).join('')
       : '';
   });
-  check('Gallman m 键含单人旁 亻（他→Mwe）', mKeyRoots.includes('亻'), 'm 键字根: ' + mKeyRoots.slice(0, 60));
+  check('Gallman m 键含单人旁 亻（他→MSe）', mKeyRoots.includes('亻'), 'm 键字根: ' + mKeyRoots.slice(0, 60));
   // 字根网格列数自适应（键宽 83px → 5 列），字根文字不溢出格子
   const gridCheck = await page.evaluate(() => {
     const key = [...document.querySelectorAll('.kb-key')].find((k) => k.dataset.cap === 'f');
@@ -92,19 +92,19 @@ const URL = 'http://localhost:4173/index.html';
   check('灵铭字根网格列数自适应（3-6 列）', gridCheck.cols >= 3 && gridCheck.cols <= 6, 'cols=' + gridCheck.cols);
   check('灵铭字根无文字溢出重叠', gridCheck.overflow === 0, 'overflow=' + gridCheck.overflow);
   // 提示仍原样（Gallman 布局 + 灵铭 → 不翻译）
-  check('灵铭+Gallman 提示仍原样（的→e）', /的：e, fbxc/.test(gallmanState.hint), gallmanState.hint);
-  // 多键高亮：灵铭「的」= e, fbxc → 主键 e，额外键 f/b/x/c
+  check('灵铭+Gallman 提示仍原样（的→e, fbxl）', /的：e, fbxl/.test(gallmanState.hint), gallmanState.hint);
+  // 多键高亮：灵铭「的」= e, fbxl → 主键 e，额外键 f/b/x/l
   const targetKeys = await page.$$eval('.kb-key.target', (els) => els.map((e) => e.dataset.cap));
   const extraKeys = await page.$$eval('.kb-key.target-extra', (els) => els.map((e) => e.dataset.cap));
   console.log('灵铭目标键:', JSON.stringify(targetKeys), '额外键:', JSON.stringify(extraKeys));
   check('灵铭目标主键为 e', targetKeys.includes('e'), JSON.stringify(targetKeys));
-  check('灵铭额外键高亮 f/b/x/c', ['f','b','x','c'].every((k) => extraKeys.includes(k)), JSON.stringify(extraKeys));
-  // 字根高亮：的 拆分「白勹丶」→ 白(f键)、勹(x键)、丶(c键)
+  check('灵铭额外键高亮 f/b/x/l', ['f','b','x','l'].every((k) => extraKeys.includes(k)), JSON.stringify(extraKeys));
+  // 字根高亮：的 拆分「白勹丶」→ 白(f键)、勹(x键)、丶(l键)
   const activeRoots = await page.$$eval('.zigen-item.active-root', (els) =>
     els.map((el) => el.closest('.kb-key').dataset.cap + ':' + el.querySelector('.zigen-font').textContent)
   );
   console.log('灵铭字根高亮:', JSON.stringify(activeRoots));
-  check('灵铭字根条目高亮（白/勹/丶）', ['f:白','x:勹','c:丶'].every((s) => activeRoots.includes(s)), JSON.stringify(activeRoots));
+  check('灵铭字根条目高亮（白/勹/丶）', ['f:白','x:勹','l:丶'].every((s) => activeRoots.includes(s)), JSON.stringify(activeRoots));
 
   // ---- 3. 灵铭 + QWERTY + 手动开翻译 → 反向翻译 ----
   await page.select('#layout-select', 'qwerty');
