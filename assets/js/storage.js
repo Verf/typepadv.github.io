@@ -3,12 +3,13 @@
 // IndexedDB: 用户上传码表、自定义文本、码表解析缓存（大数据）
 
 const DB_NAME = 'typepadv';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORES = {
   codeTables: 'codeTables',   // 用户上传码表 {key: string, name, content, direction}
   customTexts: 'customTexts', // 自定义文本 {id, name, content, createdAt}
   codeCache: 'codeCache',     // 码表解析缓存 {key, parsed, direction}
   chaifenCache: 'chaifenCache', // 字根拆分表缓存 {key, data}
+  rootProgress: 'rootProgress', // 字根练习进度 {key, version, schemeKey, assetVersion, items}
 };
 
 let _dbPromise = null;
@@ -30,6 +31,9 @@ function openDB() {
       }
       if (!db.objectStoreNames.contains(STORES.chaifenCache)) {
         db.createObjectStore(STORES.chaifenCache, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(STORES.rootProgress)) {
+        db.createObjectStore(STORES.rootProgress, { keyPath: 'key' });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -122,6 +126,19 @@ export const customTextStore = {
   },
   async remove(id) {
     await idb.delete(STORES.customTexts, id);
+  },
+};
+
+// 字根练习进度使用 IndexedDB 保存，key 中带方案和资产版本，避免换码后继承旧进度。
+export const rootPracticeStore = {
+  async get(key) {
+    return idb.get(STORES.rootProgress, key);
+  },
+  async save(record) {
+    return idb.put(STORES.rootProgress, record);
+  },
+  async remove(key) {
+    return idb.delete(STORES.rootProgress, key);
   },
 };
 

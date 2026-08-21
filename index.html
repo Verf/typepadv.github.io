@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>跟打器</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=34-d9be8af">
-  <link rel="stylesheet" href="assets/vendor/pico.min.css?v=34-d9be8af">
-  <link rel="stylesheet" href="assets/css/style.css?v=34-d9be8af">
+  <title>形码练习平台</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=35-89e195d">
+  <link rel="stylesheet" href="assets/vendor/pico.min.css?v=35-89e195d">
+  <link rel="stylesheet" href="assets/css/style.css?v=35-89e195d">
 </head>
 <body>
   <div class="app-layout">
     <!-- ===== 左侧栏 ===== -->
     <aside class="sidebar">
       <header class="app-header">
-        <h1>跟打器</h1>
-        <p class="subtitle">中文形码跟打练习</p>
+        <h1>形码练习平台</h1>
+        <p class="subtitle">从字根记忆到文章跟打</p>
       </header>
 
       <!-- 实时统计（左上） -->
@@ -82,6 +82,48 @@
 
     <!-- ===== 右侧主体 ===== -->
     <main class="main-content">
+      <nav class="platform-nav" aria-label="练习模块">
+        <a href="#/typing" data-platform-route="typing">文章跟打</a>
+        <a href="#/roots" data-platform-route="roots">字根记忆</a>
+        <span class="platform-route-placeholder">拆分练习 · 单字编码（即将开放）</span>
+      </nav>
+
+      <!-- 字根记忆区（独立于跟打输入生命周期） -->
+      <section id="root-section" class="card root-practice" hidden>
+        <div class="root-practice-header">
+          <div>
+            <h2>字根记忆</h2>
+            <p class="muted">看字根回忆键位，逐步进入完整根码。</p>
+          </div>
+          <div id="root-session-stats" class="root-session-stats"></div>
+        </div>
+        <div class="root-practice-controls">
+          <label>输入方案<select id="root-scheme-select"></select></label>
+          <label>练习模式<select id="root-mode-select"></select></label>
+          <label>练习范围<select id="root-range-select"></select></label>
+          <label id="root-key-label">键位<select id="root-key-select"></select></label>
+          <label>题量<input id="root-count" type="number" min="1" max="200" value="20"></label>
+          <button id="root-start">开始练习</button>
+        </div>
+        <div id="root-feedback" class="root-feedback" role="status"></div>
+        <div id="root-teaching-card" class="root-teaching-card" hidden>
+          <div class="root-teaching-label">先看一眼，再闭卷回忆</div>
+          <div id="root-teach-root" class="root-teach-root"></div>
+          <div id="root-teach-code" class="root-teach-code"></div>
+          <p id="root-teach-hint"></p>
+          <button id="root-teaching-continue">开始回忆</button>
+        </div>
+        <div id="root-question" class="root-question" hidden>
+          <div id="root-progress" class="root-progress"></div>
+          <div id="root-question-mode" class="root-question-mode"></div>
+          <div id="root-question-label" class="root-question-label" aria-live="polite"></div>
+          <div id="root-typed" class="root-typed"></div>
+          <div id="root-answer" class="root-answer" aria-live="polite"></div>
+          <p class="root-help">按对应键位作答；按空格或 Esc 查看答案（计错）。</p>
+        </div>
+        <div id="root-result" class="root-result" hidden></div>
+      </section>
+
       <!-- 跟打区（含文本选择，紧凑布局） -->
       <section id="typing-section" class="card typing-card">
         <div class="typing-bar">
@@ -129,7 +171,7 @@
   </div>
 
   <footer class="app-footer">
-    <small>跟打器 · MIT License · 内置宇浩星陈 / 灵铭方案</small>
+    <small>形码练习平台 · MIT License · 内置宇浩星陈 / 灵铭方案</small>
   </footer>
 
   <!-- 布局编辑器模态框 -->
@@ -144,6 +186,6 @@
     </article>
   </dialog>
 
-  <script type="module" src="assets/js/main.js?v=34-d9be8af"></script>
+  <script type="module" src="assets/js/main.js?v=35-89e195d"></script>
 </body>
 </html>

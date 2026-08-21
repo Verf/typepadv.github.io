@@ -14,6 +14,7 @@ import { loadChaifenData, getChaifen, tokenizeChaifenRoots, tokenizeChaifenCodes
 import { BUILTIN_SCHEMES, setCurrentScheme } from './schemes.js';
 import { TypingController } from './typing.js';
 import * as stats from './stats.js';
+import { RootPracticeController } from './root-practice.js';
 
 // ---- 常量 ----
 // 内置方案注册表见 schemes.js（码表/拆分/字根/编码基准布局）
@@ -41,6 +42,7 @@ const state = {
   viewPage: null,       // 手动查看的页码（null = 跟随光标）
 };
 let rootLoadGeneration = 0;
+let rootPractice = null;
 
 function loadSchemeRootAssets(scheme, schemeKey) {
   const generation = ++rootLoadGeneration;
@@ -55,6 +57,39 @@ function loadSchemeRootAssets(scheme, schemeKey) {
     if (state.sessionView) updateTargetKey();
     return true;
   });
+}
+
+// ---- 平台路由：跟打与字根练习共享方案/布局设置，但输入生命周期相互隔离 ----
+function applyPlatformRoute() {
+  const isRoots = location.hash === '#/roots';
+  document.body.classList.toggle('root-route', isRoots);
+  if (isRoots) document.getElementById('hidden-input')?.blur();
+  document.querySelectorAll('[data-platform-route]').forEach((link) => {
+    link.classList.toggle('is-active', isRoots ? link.dataset.platformRoute === 'roots' : link.dataset.platformRoute === 'typing');
+    link.setAttribute('aria-current', (isRoots ? link.dataset.platformRoute === 'roots' : link.dataset.platformRoute === 'typing') ? 'page' : 'false');
+  });
+  // 进入字根记忆时清除文章跟打残留的目标键/按键状态；切回后由当前字恢复。
+  if (isRoots) clearKeyStates(dom.keyboard);
+  rootPractice?.setActive(isRoots);
+  if (!isRoots && state.sessionView) updateTargetKey();
+}
+
+function initPlatformShell() {
+  rootPractice = new RootPracticeController({
+    getLayoutId: () => state.settings.layout,
+    getPhysicalMap: () => state.layoutMap || buildCodeTranslateMap('qwerty', state.settings.layout),
+    getSchemeKey: () => state.settings.codetable,
+    onSchemeChange: (key) => {
+      // 复用现有方案切换事件，确保码表/拆分/字根图与平台练习一致。
+      if (BUILTIN_SCHEMES[key] && dom.codetableSelect.value !== key) {
+        dom.codetableSelect.value = key;
+        dom.codetableSelect.dispatchEvent(new Event('change'));
+      }
+    },
+  });
+  rootPractice.init();
+  window.addEventListener('hashchange', applyPlatformRoute);
+  applyPlatformRoute();
 }
 
 // ---- DOM 引用 ----
@@ -155,6 +190,7 @@ async function init() {
   }
   // 首次进入自动聚焦输入框（页面加载完成后；若用户已点击其它控件则不打扰）
   const focusInputOnce = () => {
+    if (location.hash === '#/roots') return;
     const el = document.getElementById('hidden-input');
     if (!el) return;
     if (document.activeElement === document.body || !document.activeElement) {
@@ -166,6 +202,7 @@ async function init() {
   } else {
     window.addEventListener('load', () => setTimeout(focusInputOnce, 200), { once: true });
   }
+  initPlatformShell();
 }
 
 // ---- 设置管理 ----
@@ -958,6 +995,7 @@ function bindEvents() {
 
   // 打字区点击（全区域委托，含字符区）→ 聚焦输入
   dom.typingArea.addEventListener('click', (e) => {
+    if (location.hash === '#/roots') return;
     e.preventDefault();
     input.focus({ preventScroll: true });
     input.value = '';
@@ -966,6 +1004,7 @@ function bindEvents() {
 
   // 自动聚焦：切回本页/切换到窗口时直接可输入，无需再点输入区
   const autoFocus = () => {
+    if (location.hash === '#/roots') return;
     // 避免在弹层/对话框打开时抢焦点
     if (document.querySelector('dialog[open]')) return;
     // 拆分下拉等面板打开时不抢（用户可能在点选）
@@ -997,6 +1036,7 @@ function bindEvents() {
   });
   input.addEventListener('compositionend', () => {
     isComposing = false;
+    if (location.hash === '#/roots') { input.value = ''; delete input.dataset.composeStart; return; }
     // 组合结束：只统计最终上屏的增量（组合期临时变化忽略）
     if (input.dataset.composeStart !== undefined && input.value !== input.dataset.composeStart) {
       controller.handleInput(input.value);
@@ -1006,6 +1046,7 @@ function bindEvents() {
   });
   input.addEventListener('input', (e) => {
     if (isComposing || e.isComposing) return; // 组合中忽略
+    if (location.hash === '#/roots') { input.value = ''; return; }
     controller.handleInput(input.value);
     flashForLastKey();
   });
@@ -1040,6 +1081,7 @@ function bindEvents() {
   dom.codetableSelect.addEventListener('change', async () => {
     state.settings.codetable = dom.codetableSelect.value;
     saveSettings();
+    rootPractice?.syncScheme(state.settings.codetable);
     await loadCodeTable(state.settings.codetable);
     // 联动：更新编码翻译映射（基准布局随方案变）、加载对应拆分/字根
     const scheme = BUILTIN_SCHEMES[state.settings.codetable] || null;

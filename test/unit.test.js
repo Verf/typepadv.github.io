@@ -422,6 +422,43 @@ async function importESM(rel) {
     }
   });
 
+  // ===== 字根记忆练习 =====
+  console.log('\n[root-deck] 字根题库与复习调度');
+  const deck = await importESM('assets/js/root-deck.js');
+  await t('root-deck: 从字根图生成稳定题卡并保留完整根码', () => {
+    const cards = deck.buildRootCards({ X: [{ f: '其', s: 'qi' }], p: [{ f: '㐄', s: 'ka' }] }, 'ling-builtin', 'qf1');
+    assert.equal(cards.length, 2);
+    assert.equal(cards.find((c) => c.root === '㐄').code, 'pka');
+    assert.ok(cards[0].id.includes('ling-builtin:qf1'));
+  });
+  await t('root-deck: 错题会重置阶段，正确题进入长期复习', () => {
+    const card = deck.buildRootCards({ a: [{ f: '一', s: 'i' }] }, 'star-builtin')[0];
+    let progress = deck.freshProgress([card]);
+    progress = deck.updateProgress(progress, card, { correct: false }, 1000);
+    assert.equal(progress[card.id].stage, 0);
+    progress = deck.updateProgress(progress, card, { correct: true }, 2000);
+    progress = deck.updateProgress(progress, card, { correct: true }, 3000);
+    progress = deck.updateProgress(progress, card, { correct: true }, 4000);
+    assert.equal(progress[card.id].stage, 3);
+    assert.ok(progress[card.id].dueAt > 4000);
+    assert.equal(deck.summarizeProgress([card], progress, 0).mastered, 1);
+  });
+  await t('root-deck: 范围筛选支持新字根、薄弱项和按键位', () => {
+    const cards = deck.buildRootCards({ a: [{ f: '一', s: 'i' }], b: [{ f: '丨', s: 'o' }] }, 'star-builtin');
+    const p = deck.freshProgress(cards);
+    assert.equal(deck.dueCards(cards, p, 0, 'new').length, 2);
+    assert.equal(deck.keyCards(cards, p, 'b', 0).length, 1);
+  });
+  await t('root-deck: 会话内正确题间隔为 2/5/10', () => {
+    assert.deepEqual([0, 1, 2].map((stage) => deck.sessionGapFor(stage)), [2, 5, 10]);
+  });
+  await t('root-practice: Gallman 下物理 KeyQ 映射为 p 键帽', async () => {
+    const practice = await importESM('assets/js/root-practice.js');
+    const map = layout.gallmanMap();
+    assert.equal(practice.mapPhysicalKey({ code: 'KeyQ', key: 'q' }, map), 'p');
+    assert.equal(practice.mapPhysicalKey({ code: 'KeyA', key: 'a' }, map), 'n');
+  });
+
   // 汇总
   console.log(`\n单元测试结果: ${pass} 通过, ${fail} 失败`);
   process.exit(fail > 0 ? 1 : 0);

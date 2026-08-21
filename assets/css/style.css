@@ -10,6 +10,45 @@
   font-display: swap;
 }
 
+/* 平台导航与字根练习 */
+.platform-nav {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: .45rem .7rem;
+  border: 1px solid var(--pico-muted-border-color, #d8dee4);
+  border-radius: .45rem;
+  background: var(--pico-card-background-color, #fff);
+}
+.platform-nav a { text-decoration: none; padding: .25rem .65rem; border-radius: .3rem; }
+.platform-nav a.is-active { background: var(--pico-primary-background, #1976d2); color: #fff; }
+.platform-route-placeholder { color: var(--pico-muted-color, #68717a); font-size: .85rem; }
+.root-practice-header { display:flex; justify-content:space-between; gap:1rem; align-items:start; }
+.root-practice-header h2 { margin-bottom:.15rem; }
+.muted, .root-help { color: var(--pico-muted-color, #68717a); }
+.root-session-stats { font-size:.85rem; color:var(--pico-muted-color, #68717a); text-align:right; }
+.root-practice-controls { display:flex; gap:.65rem; flex-wrap:wrap; align-items:end; margin:1rem 0; }
+.root-practice-controls label { min-width: 8rem; margin:0; }
+.root-practice-controls input, .root-practice-controls select { margin-bottom:0; }
+#root-key-label:has(select[hidden]) { display:none; }
+.root-feedback { min-height:1.4rem; color:var(--pico-del-color, #b42318); }
+.root-teaching-card, .root-question, .root-result { padding:1.2rem; border-radius:.5rem; background:var(--pico-code-background-color, #f5f7f9); text-align:center; }
+.root-teaching-label, .root-question-mode { color:var(--pico-muted-color, #68717a); font-size:.9rem; }
+.root-teach-root, .root-question-label { font-family:'Yuniversus', sans-serif; font-size:clamp(3rem, 12vw, 7rem); line-height:1.1; margin:.5rem 0; }
+.root-teach-code { font:700 1.6rem ui-monospace, monospace; letter-spacing:.18em; }
+.root-progress { color:var(--pico-muted-color, #68717a); font-size:.9rem; }
+.root-typed { min-height:1.6rem; font:600 1.2rem ui-monospace, monospace; }
+.root-answer { min-height:1.6rem; margin-top:.7rem; font-weight:600; }
+.root-answer.is-correct { color:#157347; }
+.root-answer.is-wrong { color:#b42318; }
+.root-result { font-weight:600; }
+body.root-route #typing-section { display:none; }
+/* 根记忆题目只呈现键帽，避免把整张字根图变成答案提示。 */
+body.root-route .zigen-grid { display:none; }
+body.root-route #stats-section, body.root-route #history-section { display:none; }
+
 :root {
   --accent: #3b82f6;
   --correct: #22c55e;

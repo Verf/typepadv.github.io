@@ -34,12 +34,39 @@ const URL = 'http://localhost:4173/index.html';
     return { kbKeys, chars, codeHint, title, stats, historyRows };
   });
 
+  await page.evaluate(() => { location.hash = '#/roots'; });
+  await new Promise((r) => setTimeout(r, 1500));
+  const rootRoute = await page.evaluate(() => {
+    const before = document.getElementById('stat-progress').textContent;
+    const hidden = document.getElementById('hidden-input');
+    hidden.value = 'a';
+    hidden.dispatchEvent(new Event('input', { bubbles: true }));
+    const after = document.getElementById('stat-progress').textContent;
+    return {
+    visible: !document.getElementById('root-section').hidden,
+    active: document.querySelector('[data-platform-route="roots"]')?.classList.contains('is-active'),
+    schemes: document.querySelectorAll('#root-scheme-select option').length,
+    typingHidden: getComputedStyle(document.getElementById('typing-section')).display === 'none',
+      idleInputIsolated: before === after,
+    };
+  });
+  result.rootRoute = rootRoute;
+
+  await page.evaluate(() => { location.hash = '#/typing'; });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.select('#codetable-select', 'ling-builtin');
+  await new Promise((r) => setTimeout(r, 800));
+  await page.evaluate(() => { location.hash = '#/roots'; });
+  await new Promise((r) => setTimeout(r, 500));
+  result.schemeShared = await page.$eval('#root-scheme-select', (el) => el.value === 'ling-builtin');
+
   console.log(JSON.stringify({ result, errors }, null, 2));
 
   const pass =
     result.kbKeys > 0 &&
     result.chars > 0 &&
-    result.title.includes('跟打器') &&
+    result.title.includes('形码练习平台') &&
+    result.rootRoute.visible && result.rootRoute.active && result.rootRoute.schemes >= 2 && result.rootRoute.typingHidden && result.rootRoute.idleInputIsolated && result.schemeShared &&
     errors.length === 0;
 
   // 截图
