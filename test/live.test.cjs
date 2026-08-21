@@ -31,7 +31,7 @@ const LIVE_URL = process.argv[2] || 'https://verf.github.io/typepadv.github.io/'
 
   let pass = 0, fail = 0;
   const check = (name, cond) => { cond ? pass++ : fail++; console.log((cond ? '  ✅ ' : '  ❌ ') + name); };
-  check('页面标题正确', result.title.includes('跟打器'));
+  check('页面标题正确', result.title.includes('形码练习平台'));
   check('虚拟键盘渲染', result.kbKeys > 0);
   check('跟打文本渲染', result.chars > 0);
   check('码表加载且编码正确', /的：d/.test(result.codeHint));
