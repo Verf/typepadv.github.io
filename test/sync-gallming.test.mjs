@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync, rename
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { buildCodeTable, buildRoots, locateUpstreamRoot, main, mergeReviewedRoots, parseChaifen, transactionalWrite, validateCandidateDelivery } from '../scripts/sync-gallming.mjs';
+import { buildCodeTable, buildRoots, locateUpstreamRoot, main, mergeReviewedRoots, parseChaifen, transactionalWrite, validateCandidateDelivery, validateRootIdentityCoverage } from '../scripts/sync-gallming.mjs';
 
 const yaml = (body) => `---\nname: test\n...\n${body}`;
 
@@ -19,6 +19,10 @@ const groups = Array.from(oldKeys, (key) => `${key.toLowerCase()}\t/lm${key.toLo
 const rootSource = yaml(`${groups}\n+ e = 臣\t/lmb\n`);
 const roots = buildRoots(rootSource, yaml('字\t[臣,Ve,Ve]\n'), permutation);
 assert.deepEqual(roots.v, [{ f: 'b', s: 'b' }, { f: '臣', s: 'e' }]);
+const qfRows = buildRoots(yaml(`${groups}\n+ ki = 其\t/lmb\n`), yaml('其\t[其,Vqi,Vqi]\n'), permutation);
+assert.equal(qfRows.v.find((entry) => entry.f === '其').s, 'qi', 'qf 逐根码应覆盖字根表的旧 ki 声韵');
+const aliasRows = buildRoots(yaml(`${groups}\n凵\t/lmb\n`), yaml('凵\t[ㄩ,Va,Va]\n'), permutation);
+assert.deepEqual(aliasRows.v.filter((entry) => ['凵', 'ㄩ'].includes(entry.f)), [{ f: '凵', s: 'a' }, { f: 'ㄩ', s: 'a' }]);
 assert.deepEqual(mergeReviewedRoots(roots, { candidates: [
   { canonical: '⺈', confidence: 'reviewed', key: 'v', suffix: 'i', glyphs: ['⺈'] },
   { canonical: '臣', confidence: 'verified', key: 'v', suffix: 'e', glyphs: ['臣'] },
@@ -31,6 +35,11 @@ assert.throws(
   () => buildRoots(yaml(`${groups}\n+ e = 臣\t/lmb\n+ i = 臣\t/lmb\n`), yaml('字\t[臣,Ve,Ve]\n'), permutation),
   /存在冲突声韵/u,
 );
+assert.throws(
+  () => validateRootIdentityCoverage({ v: [{ f: '其', s: 'ki' }] }, yaml('其\t[其,Vqi,Vqi]\n'), { candidates: [], noCandidate: [] }),
+  /未覆盖/u,
+);
+validateRootIdentityCoverage({ v: [{ f: '其', s: 'qi' }] }, yaml('其\t[其,Vqi,Vqi]\n'), { candidates: [], noCandidate: [] });
 assert.throws(
   () => buildRoots(rootSource, yaml('甲\t[b,Vx,Vx]\n乙\t[b,Vy,Vy]\n'), permutation),
   /冲突拆分声韵/u,
@@ -53,14 +62,16 @@ const e2eSource = mkdtempSync(join(tmpdir(), 'gallming-e2e-source-'));
 const e2eProject = mkdtempSync(join(tmpdir(), 'gallming-e2e-project-'));
 mkdirSync(join(e2eSource, 'out'), { recursive: true });
 mkdirSync(join(e2eSource, 'data'), { recursive: true });
-writeFileSync(join(e2eSource, 'out/gallming.dict.yaml'), yaml('宇\tftmo\t1\n'));
-writeFileSync(join(e2eSource, 'out/gallming_chaifen.dict.yaml'), yaml('宇\t[宀一{于下},FTMo,Fa-Ti-Mo]\n'));
+writeFileSync(join(e2eSource, 'out/gallming.dict.yaml'), yaml('的\te\t1\n年\trda\t1\n久\tblu\t1\n其\txqi\t1\n宇\thtmo\t1\n'));
+writeFileSync(join(e2eSource, 'out/gallming_chaifen.dict.yaml'), yaml('的\t[白勹丶,HbQL,Hba-Qa-Lu]\n年\t[{乞上}㐄,RDka,Ro-Dka]\n久\t[⺈乀,BLu,Bi-Lu]\n其\t[其,Xqi,Xqi]\n宇\t[宀一{于下},HTMo,Ha-Ti-Mo]\n'));
 writeFileSync(join(e2eSource, 'data/yuling.roots.dict.yaml'), rootSource);
-writeFileSync(join(e2eSource, 'out/best_perm.json'), JSON.stringify({ perm: Array.from(permutation) }));
+writeFileSync(join(e2eSource, 'out/best_perm.json'), JSON.stringify({
+  perm: Array.from(permutation), encoding: { q_mode: 'direct', zero_key: 'f' },
+}));
 const fixtureCsv = Buffer.from('yuniversus,chaipua,ispua\n字,,\n');
 const fixtureWoff = Buffer.from('wOFFfixture-data');
 const hash = (data) => createHash('sha256').update(data).digest('hex');
-const fixtureCandidates = { version: 1, layout: { damaOrder: oldKeys, perm: permutation }, candidates: [], noCandidate: [], sources: {
+const fixtureCandidates = { version: 1, layout: { damaOrder: oldKeys, perm: permutation }, encoding: { q_mode: 'direct', zero_key: 'f' }, candidates: [], noCandidate: [], sources: {
   version: 1,
   mapping: { url: 'https://shurufa.app/fonts/yuniversus-chaipua.csv', file: 'yuniversus-chaipua.csv', sha256: hash(fixtureCsv) },
   font: { url: 'https://shurufa.app/fonts/Yuniversus.woff', file: 'Yuniversus.woff', sha256: hash(fixtureWoff) },
@@ -68,19 +79,20 @@ const fixtureCandidates = { version: 1, layout: { damaOrder: oldKeys, perm: perm
 writeFileSync(join(e2eSource, 'out/gallming_root_candidates.json'), JSON.stringify(fixtureCandidates));
 writeFileSync(join(e2eSource, 'data/yuniversus-chaipua.csv'), fixtureCsv);
 writeFileSync(join(e2eSource, 'data/Yuniversus.woff'), fixtureWoff);
-main(['--source', e2eSource], { projectRoot: e2eProject, expected: { codeEntries: 1, chars: 1 } });
-assert.equal(readFileSync(join(e2eProject, 'assets/code-tables/mabiao-ling.txt'), 'utf8'), 'ftmo\t宇\n');
+main(['--source', e2eSource], { projectRoot: e2eProject, expected: { codeEntries: 5, chars: 5, validateIdentities: false } });
+assert.equal(readFileSync(join(e2eProject, 'assets/code-tables/mabiao-ling.txt'), 'utf8').includes('htmo\t宇\n'), true);
 assert.deepEqual(readFileSync(join(e2eProject, 'assets/fonts/Yuniversus.woff')), fixtureWoff);
-assert.throws(() => validateCandidateDelivery({ ...fixtureCandidates, version: 2 }, permutation, fixtureCsv, fixtureWoff), /schema\/version/u);
-assert.throws(() => validateCandidateDelivery(fixtureCandidates, permutation, fixtureCsv, Buffer.from('wOFFchanged')), /SHA-256/u);
-main(['--source', e2eSource, '--check'], { projectRoot: e2eProject, expected: { codeEntries: 1, chars: 1 } });
+assert.throws(() => validateCandidateDelivery({ ...fixtureCandidates, version: 2 }, permutation, fixtureCsv, fixtureWoff, fixtureCandidates.encoding), /schema\/version/u);
+assert.throws(() => validateCandidateDelivery(fixtureCandidates, permutation, fixtureCsv, Buffer.from('wOFFchanged'), fixtureCandidates.encoding), /SHA-256/u);
+assert.throws(() => validateCandidateDelivery({ ...fixtureCandidates, encoding: { q_mode: 'mapped', zero_key: 'j' } }, permutation, fixtureCsv, fixtureWoff, fixtureCandidates.encoding), /编码变体/u);
+main(['--source', e2eSource, '--check'], { projectRoot: e2eProject, expected: { codeEntries: 5, chars: 5, validateIdentities: false } });
 writeFileSync(join(e2eProject, 'assets/code-tables/mabiao-ling.txt'), 'stale\n');
-assert.throws(() => main(['--source', e2eSource, '--check'], { projectRoot: e2eProject, expected: { codeEntries: 1, chars: 1 } }), /不是最新版本/u);
+assert.throws(() => main(['--source', e2eSource, '--check'], { projectRoot: e2eProject, expected: { codeEntries: 5, chars: 5, validateIdentities: false } }), /不是最新版本/u);
 
 // 默认 clone 生命周期：成功、clone 失败、generate 失败都必须清理临时目录。
 let cleaned = false;
 main([], {
-  projectRoot: e2eProject, expected: { codeEntries: 1, chars: 1 },
+  projectRoot: e2eProject, expected: { codeEntries: 5, chars: 5, validateIdentities: false },
   makeTemp: () => e2eSource, clone: () => {}, cleanup: (path) => { cleaned = true; rmSync(path, { recursive: true, force: true }); },
 });
 assert.equal(cleaned, true);

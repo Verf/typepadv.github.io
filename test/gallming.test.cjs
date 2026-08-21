@@ -45,9 +45,9 @@ const URL = 'http://localhost:4173/index.html';
   console.log('灵铭初始:', JSON.stringify(lingState));
   check('切换后方案为 ling-builtin', lingState.codetable === 'ling-builtin');
   check('翻译开关自动关闭（灵铭默认）', lingState.translateChecked === false, 'checked=' + lingState.translateChecked);
-  // 当前字「的」→ 灵铭编码 e（不翻译，原样）
-  check('灵铭提示原样显示（的→e, fbxl）', /的：e, fbxl/.test(lingState.hint), lingState.hint);
-  check('灵铭拆分提示（的→白勹丶FbXL）', lingState.hint.includes('拆') && lingState.hint.includes('FbXL'), lingState.hint);
+  // 当前字「的」→ qf 灵铭编码 e（不翻译，原样）
+  check('qf 灵铭提示原样显示（的→e, hbql）', /的：e, hbql/.test(lingState.hint), lingState.hint);
+  check('qf 灵铭拆分提示（的→白勹丶HbQL）', lingState.hint.includes('拆') && lingState.hint.includes('HbQL'), lingState.hint);
 
   // ---- 2. 灵铭 + Gallman 布局：字根按键帽直配 ----
   await page.select('#layout-select', 'gallman');
@@ -99,20 +99,20 @@ const URL = 'http://localhost:4173/index.html';
   console.log('字根网格检查:', JSON.stringify(gridCheck));
   check('灵铭字根网格列数自适应（3-6 列）', gridCheck.cols >= 3 && gridCheck.cols <= 6, 'cols=' + gridCheck.cols);
   check('灵铭字根无文字溢出重叠', gridCheck.overflow === 0, 'overflow=' + gridCheck.overflow);
-  // 提示仍原样（Gallman 布局 + 灵铭 → 不翻译）
-  check('灵铭+Gallman 提示仍原样（的→e, fbxl）', /的：e, fbxl/.test(gallmanState.hint), gallmanState.hint);
-  // 多键高亮：灵铭「的」= e, fbxl → 主键 e，额外键 f/b/x/l
+  // 提示仍原样（Gallman 布局 + qf 灵铭 → 不翻译）
+  check('qf 灵铭+Gallman 提示仍原样（的→e, hbql）', /的：e, hbql/.test(gallmanState.hint), gallmanState.hint);
+  // 多键高亮：qf 灵铭「的」= e, hbql → 主键 e，额外键 h/b/q/l
   const targetKeys = await page.$$eval('.kb-key.target', (els) => els.map((e) => e.dataset.cap));
   const extraKeys = await page.$$eval('.kb-key.target-extra', (els) => els.map((e) => e.dataset.cap));
   console.log('灵铭目标键:', JSON.stringify(targetKeys), '额外键:', JSON.stringify(extraKeys));
   check('灵铭目标主键为 e', targetKeys.includes('e'), JSON.stringify(targetKeys));
-  check('灵铭额外键高亮 f/b/x/l', ['f','b','x','l'].every((k) => extraKeys.includes(k)), JSON.stringify(extraKeys));
-  // 字根高亮：的 拆分「白勹丶」→ 白(f键)、勹(x键)、丶(l键)
+  check('qf 灵铭额外键高亮 h/b/q/l', ['h','b','q','l'].every((k) => extraKeys.includes(k)), JSON.stringify(extraKeys));
+  // 字根高亮：的 拆分「白勹丶」→ 白(h键)、勹(q键)、丶(l键)
   const activeRoots = await page.$$eval('.zigen-item.active-root', (els) =>
     els.map((el) => el.closest('.kb-key').dataset.cap + ':' + el.querySelector('.zigen-font').textContent)
   );
   console.log('灵铭字根高亮:', JSON.stringify(activeRoots));
-  check('灵铭字根条目高亮（白/勹/丶）', ['f:白','x:勹','l:丶'].every((s) => activeRoots.includes(s)), JSON.stringify(activeRoots));
+  check('qf 灵铭字根条目高亮（白/勹/丶）', ['h:白','q:勹','l:丶'].every((s) => activeRoots.includes(s)), JSON.stringify(activeRoots));
 
   async function selectCustomText(text) {
     await page.evaluate((value) => {
@@ -127,7 +127,7 @@ const URL = 'http://localhost:4173/index.html';
     await new Promise((r) => setTimeout(r, 400));
   }
 
-  // 结构根 tokenizer + 上游身份候选：年={乞上}㐄 / RSka。
+  // 结构根 tokenizer + 上游身份候选：qf 年={乞上}㐄 / RDka。
   await selectCustomText('年');
   const yearState = await page.evaluate(() => ({
     target: [...document.querySelectorAll('.kb-key.target,.kb-key.target-extra')].map((e) => e.dataset.cap),
@@ -135,15 +135,25 @@ const URL = 'http://localhost:4173/index.html';
       key: e.closest('.kb-key').dataset.cap, root: e.dataset.root,
     })),
   }));
-  check('年按根码高亮 R/S 键', ['r', 's'].every((key) => yearState.target.includes(key)), JSON.stringify(yearState.target));
-  check('年只高亮㐄的 Yuniversus U+F48B', yearState.active.some((x) => x.key === 's' && x.root === '\uF48B'), JSON.stringify(yearState.active));
+  check('qf 年按根码高亮 R/D 键', ['r', 'd'].every((key) => yearState.target.includes(key)), JSON.stringify(yearState.target));
+  check('qf 年只高亮㐄的 Yuniversus U+F48B', yearState.active.some((x) => x.key === 'd' && x.root === '\uF48B'), JSON.stringify(yearState.active));
   check('年不误亮同码{奉下}的 U+F409', !yearState.active.some((x) => x.root === '\uF409'), JSON.stringify(yearState.active));
 
   const reviewedRoots = await page.$$eval('.zigen-item', (els) => els.map((e) => e.dataset.root));
   check('维护者补充的基础根已渲染', ['⺈','忄','冫','卄','冎','ㄗ'].every((root) => reviewedRoots.includes(root)));
   await selectCustomText('久');
   let reviewedActive = await page.$$eval('.zigen-item.active-root', (els) => els.map((e) => `${e.closest('.kb-key').dataset.cap}:${e.dataset.root}`));
-  check('维护者确认根可真实高亮（久→⺈）', reviewedActive.includes('v:⺈'), JSON.stringify(reviewedActive));
+  check('qf 维护者确认根可真实高亮（久→⺈）', reviewedActive.includes('b:⺈'), JSON.stringify(reviewedActive));
+  await selectCustomText('其');
+  const qiState = await page.evaluate(() => ({
+    hint: document.getElementById('code-hint').textContent.trim(),
+    target: [...document.querySelectorAll('.kb-key.target,.kb-key.target-extra')].map((e) => e.dataset.cap),
+    active: [...document.querySelectorAll('.zigen-item.active-root')]
+      .map((e) => `${e.closest('.kb-key').dataset.cap}:${e.dataset.root}`),
+  }));
+  check('qf 声母直用关键例（其→xqi）', /其：xqi/.test(qiState.hint), qiState.hint);
+  check('qf 其高亮 x/q/i 键', ['x', 'q', 'i'].every((key) => qiState.target.includes(key)), JSON.stringify(qiState.target));
+  check('qf 其精确高亮字根图 x/其', qiState.active.includes('x:其'), JSON.stringify(qiState.active));
   await page.select('#layout-select', 'qwerty');
   await new Promise((r) => setTimeout(r, 300));
   await selectCustomText('墯');
@@ -152,14 +162,14 @@ const URL = 'http://localhost:4173/index.html';
   await page.select('#layout-select', 'gallman');
   await new Promise((r) => setTimeout(r, 300));
 
-  // 明确无显示候选：儍 的第二根 {鬯中}/Bi 只亮 v 键，不亮其同码字根。
+  // 明确无显示候选：qf 儍的第二根 {鬯中}/Bi 只亮 b 键，不亮其同码字根。
   await selectCustomText('儍');
   const noCandidate = await page.evaluate(() => ({
-    vTarget: !!document.querySelector('.kb-key[data-cap="v"].target-extra,.kb-key[data-cap="v"].target'),
-    vActive: document.querySelectorAll('.kb-key[data-cap="v"] .zigen-item.active-root').length,
+    bTarget: !!document.querySelector('.kb-key[data-cap="b"].target-extra,.kb-key[data-cap="b"].target'),
+    bActive: document.querySelectorAll('.kb-key[data-cap="b"] .zigen-item.active-root').length,
   }));
-  check('无候选结构根仍高亮对应键', noCandidate.vTarget, JSON.stringify(noCandidate));
-  check('无候选结构根不猜测具体字根', noCandidate.vActive === 0, JSON.stringify(noCandidate));
+  check('qf 无候选结构根仍高亮对应键', noCandidate.bTarget, JSON.stringify(noCandidate));
+  check('qf 无候选结构根不猜测具体字根', noCandidate.bActive === 0, JSON.stringify(noCandidate));
 
   await selectCustomText('的');
 

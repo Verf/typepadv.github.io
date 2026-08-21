@@ -10,6 +10,9 @@ import { createHash } from 'node:crypto';
 export const UPSTREAM_URL = 'https://git.nas.verf.uk/verf/gallming.git';
 const DAMA_ORDER = 'BCDFGHJKLMNPQRSTVWXY';
 const DELIVERY_CHAR = (ch) => Array.from(ch).length === 1 && (ch === '〇' || /[\u4e00-\u9fff]/u.test(ch));
+// 官方族根表以“凵”收录该形，而逐字拆分的显示语义是“ㄩ”。两者共享根码，
+// 因此字根图必须同时提供 ㄩ，才能精确高亮 qf 拆分中的该身份。
+const DISPLAY_ALIASES = new Map([['凵', 'ㄩ']]);
 
 function yamlBody(text) {
   const marker = text.split(/\r?\n/u).findIndex((line) => line === '...');
@@ -67,13 +70,32 @@ function parseRootSource(text) {
   return { groups, rows };
 }
 
+function tokenizeRoots(value) {
+  const roots = [];
+  for (let i = 0; i < value.length;) {
+    if (value.startsWith('...', i)) { i += 3; continue; }
+    if (value[i] === '{') {
+      const end = value.indexOf('}', i + 1);
+      if (end < 0) throw new Error(`拆分根缺少右括号: ${value}`);
+      roots.push(value.slice(i, end + 1));
+      i = end + 1;
+      continue;
+    }
+    if (value[i] === '}') throw new Error(`拆分根存在多余右括号: ${value}`);
+    const [root] = Array.from(value.slice(i));
+    roots.push(root);
+    i += root.length;
+  }
+  return roots;
+}
+
 function fallbackSuffixes(chaifenText) {
   const found = new Map();
   for (const line of yamlBody(chaifenText)) {
     const [, value] = line.split('\t');
     if (!value?.startsWith('[') || !value.endsWith(']')) continue;
     const parts = value.slice(1, -1).split(',');
-    const roots = Array.from(parts[0] || '');
+    const roots = tokenizeRoots(parts[0] || '');
     const codes = (parts[2] || '').split('-');
     if (roots.length !== codes.length) continue;
     roots.forEach((root, index) => {
@@ -105,13 +127,26 @@ export function buildRoots(rootsText, chaifenText, permutation) {
     const key = keyMap.get(oldKey);
     const byRoot = new Map();
     for (const entry of rows.get(oldKey) || []) if (!byRoot.has(entry.f)) byRoot.set(entry.f, entry.s);
-    for (const root of groups.get(oldKey)) {
-      if (!byRoot.has(root)) byRoot.set(root, fallback.get(`${key.toUpperCase()}\0${root}`) ?? oldKey.toLowerCase());
-    }
     // 族根串是完整权威清单，顺序也来自上游；仅在其后补充声韵表中的异体。
     const orderedRoots = [...groups.get(oldKey), ...(rows.get(oldKey) || []).map((entry) => entry.f)]
       .filter((root, index, all) => all.indexOf(root) === index);
-    output[key] = orderedRoots.map((f) => ({ f, s: byRoot.get(f) }));
+    for (const root of orderedRoots) {
+      // 上游字根表的声韵仍可能是稳定版；qf 拆分表是当前正式交付的
+      // 逐根编码来源，存在时必须覆盖旧行。没有逐根证据才保留旧行/大码兜底。
+      const displayAlias = DISPLAY_ALIASES.get(root);
+      const qfSuffix = fallback.get(`${key.toUpperCase()}\0${root}`)
+        ?? (displayAlias && fallback.get(`${key.toUpperCase()}\0${displayAlias}`));
+      if (qfSuffix !== undefined) byRoot.set(root, qfSuffix);
+      else if (!byRoot.has(root)) byRoot.set(root, oldKey.toLowerCase());
+    }
+    const entries = orderedRoots.map((f) => ({ f, s: byRoot.get(f) }));
+    for (const entry of [...entries]) {
+      const alias = DISPLAY_ALIASES.get(entry.f);
+      if (alias && !entries.some((item) => item.f === alias && item.s === entry.s)) {
+        entries.push({ f: alias, s: entry.s });
+      }
+    }
+    output[key] = entries;
   }
   return output;
 }
@@ -147,13 +182,43 @@ export function mergeCandidateDisplayRoots(roots, candidatePayload) {
 // not only manually reviewed additions.
 export const mergeReviewedRoots = mergeCandidateDisplayRoots;
 
+export function validateRootIdentityCoverage(roots, chaifenText, candidatePayload) {
+  const exact = new Set();
+  for (const [key, entries] of Object.entries(roots)) {
+    for (const entry of entries) exact.add(`${key}\0${entry.f}\0${entry.s}`);
+  }
+  const decided = new Set();
+  for (const item of [...(candidatePayload.candidates || []), ...(candidatePayload.noCandidate || [])]) {
+    decided.add(`${item.key}\0${item.canonical}\0${item.suffix}`);
+  }
+  const missing = new Set();
+  for (const [char, value] of Object.entries(parseChaifen(chaifenText))) {
+    const [rootText, , perRoots = ''] = value.split('\t');
+    const rootTokens = tokenizeRoots(rootText);
+    const codeTokens = perRoots ? perRoots.split('-') : [];
+    if (rootTokens.length !== codeTokens.length) {
+      throw new Error(`qf 拆分根数与逐根码数不一致: ${char}`);
+    }
+    for (let i = 0; i < rootTokens.length; i++) {
+      const match = /^([A-Z])([a-z]*)$/u.exec(codeTokens[i]);
+      if (!match) throw new Error(`qf 逐根码格式无效: ${char}/${codeTokens[i]}`);
+      const identity = `${match[1].toLowerCase()}\0${rootTokens[i]}\0${match[2]}`;
+      if (!exact.has(identity) && !decided.has(identity)) missing.add(identity);
+    }
+  }
+  if (missing.size) throw new Error(`qf 字根显示身份未覆盖: ${Array.from(missing).sort().join(', ')}`);
+}
+
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 
-export function validateCandidateDelivery(payload, permutation, csv, font) {
+export function validateCandidateDelivery(payload, permutation, csv, font, encoding) {
   if (!payload || payload.version !== 1 || !Array.isArray(payload.candidates) || !Array.isArray(payload.noCandidate)) {
     throw new Error('gallming 字根候选 schema/version 无效');
   }
   if (payload.layout?.damaOrder !== DAMA_ORDER || payload.layout?.perm !== permutation) throw new Error('gallming 候选布局契约无效');
+  if (JSON.stringify(payload.encoding) !== JSON.stringify(encoding)) {
+    throw new Error('gallming 候选编码变体与 best_perm.json 不一致');
+  }
   const keyMap = new Map(Array.from(DAMA_ORDER, (oldKey, i) => [oldKey, permutation[i]]));
   const identities = new Set();
   const glyphOwners = new Map();
@@ -201,6 +266,14 @@ export function validateCandidateDelivery(payload, permutation, csv, font) {
   }
   if (font.length < 12 || font.subarray(0, 4).toString('ascii') !== 'wOFF') throw new Error('Yuniversus 字体不是有效 WOFF');
   return payload;
+}
+
+function validateQfEncoding(encoding) {
+  if (!encoding || encoding.q_mode !== 'direct' || encoding.zero_key !== 'f'
+      || Object.keys(encoding).length !== 2) {
+    throw new Error('best_perm.json 未声明受支持的 qf 编码变体（direct/f）');
+  }
+  return encoding;
 }
 
 function pythonStyleJson(value) {
@@ -273,21 +346,34 @@ export function generate(source, projectRoot, expected = { codeEntries: 21653, c
   const candidates = JSON.parse(candidatesText);
   const permutation = Array.isArray(best.perm) ? best.perm.join('') : '';
   if (permutation.length !== 20 || new Set(permutation).size !== 20) throw new Error('best_perm.json 中的 perm 无效');
+  const encoding = validateQfEncoding(best.encoding);
   const csv = readFileSync(join(base, 'data/yuniversus-chaipua.csv'));
   const font = readFileSync(join(base, 'data/Yuniversus.woff'));
-  validateCandidateDelivery(candidates, permutation, csv, font);
+  validateCandidateDelivery(candidates, permutation, csv, font, encoding);
   const targets = {
     'assets/code-tables/mabiao-ling.txt': buildCodeTable(mainYaml),
     'assets/data/chaifen-ling.json': pythonStyleJson(parseChaifen(chaifenYaml)),
   };
-  targets['assets/data/zigen-ling.json'] = pythonStyleJson(mergeCandidateDisplayRoots(buildRoots(rootsYaml, chaifenYaml, permutation), candidates));
+  const displayRoots = mergeCandidateDisplayRoots(buildRoots(rootsYaml, chaifenYaml, permutation), candidates);
+  if (expected.validateIdentities !== false) validateRootIdentityCoverage(displayRoots, chaifenYaml, candidates);
+  targets['assets/data/zigen-ling.json'] = pythonStyleJson(displayRoots);
   targets['assets/data/gallming-root-candidates.json'] = `${JSON.stringify(candidates, null, 2)}\n`;
   targets['assets/data/yuniversus-chaipua.csv'] = csv;
   targets['assets/fonts/Yuniversus.woff'] = font;
   const chaifen = JSON.parse(targets['assets/data/chaifen-ling.json']);
   if (targets['assets/code-tables/mabiao-ling.txt'].split('\n').filter(Boolean).length !== expected.codeEntries) throw new Error(`主码表条目数不是预期的 ${expected.codeEntries}`);
   if (Object.keys(chaifen).length !== expected.chars) throw new Error(`拆分字数不是预期的 ${expected.chars}`);
-  if (!targets['assets/code-tables/mabiao-ling.txt'].includes('ftmo\t宇\n') || chaifen['宇'] !== '宀一{于下}\tFTMo\tFa-Ti-Mo') throw new Error('关键编码校验失败：应为 宇=ftmo / FTMo / Fa-Ti-Mo');
+  const codeTable = targets['assets/code-tables/mabiao-ling.txt'];
+  const qfExamples = { '的': 'e', '年': 'rda', '久': 'blu', '其': 'xqi', '宇': 'htmo' };
+  for (const [char, code] of Object.entries(qfExamples)) {
+    if (!codeTable.includes(`${code}\t${char}\n`)) throw new Error(`qf 关键编码校验失败：${char} 应为 ${code}`);
+  }
+  if (chaifen['宇'] !== '宀一{于下}\tHTMo\tHa-Ti-Mo'
+      || chaifen['年'] !== '{乞上}㐄\tRDka\tRo-Dka'
+      || chaifen['久'] !== '⺈乀\tBLu\tBi-Lu'
+      || chaifen['其'] !== '其\tXqi\tXqi') {
+    throw new Error('qf 关键拆分编码校验失败');
+  }
   return targets;
 }
 
