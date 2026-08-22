@@ -1,0 +1,11 @@
+{
+  "name": "gallming",
+  "version": "20260822-max5-v1",
+  "release_status": "formal",
+  "root_sound_policy": "standalone_canonical",
+  "max_code_length": 5,
+  "target_chars": 7488,
+  "code_entries": 7566,
+  "shortcodes": 78,
+  "root_entries": 327
+}

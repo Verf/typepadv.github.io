@@ -45,11 +45,11 @@
 
 ### 多方案（星陈 + 灵铭）
 16. **方案注册表**：内置方案集中在 `assets/js/schemes.js`（`BUILTIN_SCHEMES`），每方案声明码表/拆分/字根 URL + `codeBaseLayout`（编码基准布局：星陈=qwerty、灵铭=gallman）+ `defaultTranslate`。新增方案只需改注册表+加数据文件。
-17. **灵铭方案（英文名 gallming）**：用户自研「灵明字根 × Gallman 布局重排」，码表编码原生是 Gallman 键帽（`宇→ftmo`），显示**不需要翻译**（默认关翻译开关）。唯一上游为 `https://git.nas.verf.uk/verf/gallming.git`，用 `npm run sync:gallming` 同步、`npm run check:gallming` 校验。数据文件 `mabiao-ling.txt`（21,653 行）、`chaifen-ling.json`（20,993 字）、`zigen-ling.json` 的 `ling` 名称仅为兼容性遗留。
+17. **灵铭方案（英文名 gallming）**：用户自研「灵明字根 × Gallman 布局重排」。当前内置版是 `20260822-max5-v1` 纯规范声码五码正式版，编码原生是 Gallman 键帽（`宇→vfqo`），显示**不需要翻译**（默认关翻译开关）。唯一上游为 `https://git.nas.verf.uk/verf/gallming.git`，用 `npm run sync:gallming` 同步、`npm run check:gallming` 校验。数据文件 `mabiao-ling.txt`（7,566 行：7,488 全码字 + 78 简码）、`chaifen-ling.json`（7,488 字）、`zigen-ling.json` 的 `ling` 名称仅为兼容性遗留。
 18. **翻译开关语义**：设置「码表翻译到布局」控制编码是否从基准布局翻译到当前布局。内置 qwerty↔gallman 用 KEY_MAP 语义（`buildCodeTranslateMap` 直接复用 gallmanMap 及其反向，保证星陈行为不变）；自定义布局基准为 qwerty 时直接复用 layoutMap；灵铭+自定义布局退化为按 qwerty 物理对齐。切内置方案时开关自动设为该方案默认值。
-19. **字根渲染双模式**：星陈 `zigenMode='qwerty-base'`（数据键=QWERTY 大码，按当前布局反查键帽）；灵铭 `'keycap'`（数据键=Gallman 键帽直配）。灵铭字根条目字段 `s` 是声韵编码（如 da/e/ge），不是单字母小码。
+19. **字根渲染双模式**：星陈 `zigenMode='qwerty-base'`（数据键=QWERTY 大码，按当前布局反查键帽）；灵铭 `'keycap'`（数据键=Gallman 键帽直配）。灵铭字根条目字段 `s` 是根码后缀：成字根为规范声码+韵码（`人→re`），不单独成字的构件根只取韵码（`亻→e`）。
 20. **自定义码表**：无内置拆分/字根，基准布局视为 qwerty、翻译默认开，导入后 `clearZigen` 清字根。
-21. **字根数据必须单字符条目**：字根 JSON 的 `f` 字段每个异体单独一条（星陈 397 条全单字符）。灵铭原始 roots_map.html 把异体合并（`艮`、`高`）导致格子内多字重叠；需从 yuling.roots.dict.yaml 的 `+ 声韵 = 根串` 拆分成单字符条目（灵铭 366 条）。
+21. **字根数据必须单字符条目**：字根 JSON 的 `f` 字段每个异体单独一条（星陈 397 条全单字符）。灵铭以 `max5_candidate.json` 的 326 个语义字根为准，结构根替换为 Yuniversus 单字形；`{衣下}` 有两个显示异体，因此最终是 327 个单字符显示条目。
 22. **字根网格列数自适应**：`.zigen-grid` 固定 6 列在键宽不足时字根文字（13px）溢出格子互相重叠（星陈/灵铭都中招）。`roots.js` 渲染时按键实际宽度算列数 `Math.max(3, Math.min(6, Math.floor((keyWidth-8)/15)))` 内联到 gridTemplateColumns（星陈 QWERTY 63px→4 列、灵铭 Gallman 83px→5 列，溢出 0）。窄屏（<900px）键高仅 32px 放不下字根，是既有限制。
-23. **字根表须含族根串全部字根**：yuling.roots.dict.yaml 的 `+ 声韵 = 根串` 条目**不完整**（漏 `亻𬺰饣夂扌` 等基础字根），族根串（如 J 族 `凵寸亻生風卩亠𬺰入三饣夂向`）才是完整列表。生成 zigen-ling.json 必须**合并族根串 + 声韵条目并集**；声韵条目缺的字根从拆分表 per_roots 反查（`亻→Je→e`、`饣→Jsi→si`、`扌→To→o`），查不到默认给大码小写。星陈 zigen-star.json 同样有该问题（官方数据本身缺 `亻`），但星陈方案无此报障暂不处理。
-24. **多键高亮 + 字根高亮**：`updateTargetKey` 用 `setTargetKeys(container, primary, extras)` 高亮当前字全部编码涉及的键（首个编码首字母=`target` 实心，其余=`target-extra` 虚线浅色）；`highlightZigenForChar` 从拆分编码提取大写（大码）→ 翻译到当前布局键帽 → 在该键字根条目中匹配拆分字根（`f===root || f.includes(root)`）加 `.active-root`。时序坑：码表/拆分/字根三者异步加载，初始与切方案后都需在各自加载完成时补调 `updateTargetKey()`，否则字根高亮不出现（拆分未就绪时 `getChaifen` 返回 null）。
+23. **正式字根数据源**：不要再从旧 `yuling.roots.dict.yaml` / `best_perm.json` 推导灵铭键位。正式分布唯一取自 `max5_candidate.json.bundles`，根码后缀取自同文件的 `sounds`；同步器必须验证 `release_status=formal`、`root_sound_policy=standalone_canonical`、20 个大码键与拆分逐根码全覆盖。
+24. **多键高亮 + 字根高亮**：`updateTargetKey` 用 `setTargetKeys(container, primary, extras)` 高亮当前字全部编码涉及的键（首个编码首字母=`target` 实心，其余=`target-extra` 虚线浅色）；`highlightZigenForChar` 用拆分表第三列逐根码提取大码，再通过正式候选身份把 `{乍下}` 等结构根匹配到 Yuniversus 单字形。时序坑：码表/拆分/字根三者异步加载，初始与切方案后都需在各自加载完成时补调 `updateTargetKey()`，否则字根高亮不出现（拆分未就绪时 `getChaifen` 返回 null）。

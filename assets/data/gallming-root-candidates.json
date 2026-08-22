@@ -2,764 +2,348 @@
   "version": 1,
   "layout": {
     "damaOrder": "BCDFGHJKLMNPQRSTVWXY",
-    "perm": "bcntpfmhyjrqxgdlvkws"
+    "perm": "bcdfghjklmnpqrstvwxy"
   },
   "encoding": {
-    "q_mode": "direct",
-    "zero_key": "f"
+    "max_code_length": 5,
+    "root_sound_policy": "standalone_canonical"
   },
   "sources": {
     "version": 1,
     "syncedAt": "2026-08-20",
     "documentation": "https://shurufa.app/docs/yuniversus",
     "mapping": {
-      "url": "https://shurufa.app/fonts/yuniversus-chaipua.csv",
       "file": "yuniversus-chaipua.csv",
-      "sha256": "daa4d80d517d18eda9036167cbcdcb4ca5585ad153cc26d7d7675790d9f77bc2"
+      "sha256": "daa4d80d517d18eda9036167cbcdcb4ca5585ad153cc26d7d7675790d9f77bc2",
+      "url": "https://shurufa.app/fonts/yuniversus-chaipua.csv"
     },
     "font": {
-      "url": "https://shurufa.app/fonts/Yuniversus.woff",
       "file": "Yuniversus.woff",
-      "sha256": "977bcb7365973089dcf5e74546a3daa313135ef894b1b73f449a29e13ed74e6d"
+      "sha256": "977bcb7365973089dcf5e74546a3daa313135ef894b1b73f449a29e13ed74e6d",
+      "url": "https://shurufa.app/fonts/Yuniversus.woff"
     }
   },
   "summary": {
     "automaticIdentities": 104,
     "automaticGlyphs": 106,
-    "reviewedIdentities": 8,
-    "unresolvedReviewed": 4
+    "reviewedIdentities": 11,
+    "unresolvedReviewed": 1,
+    "release_status": "formal",
+    "root_sound_policy": "standalone_canonical",
+    "formal_candidates": 96,
+    "formal_no_candidate": 0
   },
   "candidates": [
     {
       "canonical": "{奐上}",
-      "sourceCode": "Bi",
+      "sourceCode": "Ti",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "b",
+      "key": "t",
       "suffix": "i"
     },
     {
       "canonical": "{姬右}",
-      "sourceCode": "Bi",
+      "sourceCode": "Ri",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "b",
+      "key": "r",
       "suffix": "i"
     },
     {
-      "canonical": "{弬右}",
-      "sourceCode": "Bi",
+      "canonical": "{鬯中}",
+      "sourceCode": "Ti",
       "glyphs": [
-        ""
+        "𠂭"
       ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "b",
+      "reason": "上游拆分表以标准 Unicode U+200AD 单根等同表示该构件",
+      "confidence": "reviewed",
+      "provenance": "maintainer-review",
+      "key": "t",
       "suffix": "i"
     },
     {
       "canonical": "⺈",
-      "sourceCode": "Bi",
+      "sourceCode": "Li",
       "glyphs": [
         "⺈"
       ],
       "reason": "高频基础部首，官方字根表遗漏",
       "confidence": "reviewed",
       "provenance": "maintainer-review",
-      "key": "b",
+      "key": "l",
       "suffix": "i"
     },
     {
       "canonical": "{反彐}",
-      "sourceCode": "Bo",
+      "sourceCode": "To",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "b",
+      "key": "t",
       "suffix": "o"
     },
     {
       "canonical": "リ",
-      "sourceCode": "Ca",
+      "sourceCode": "Ra",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "r",
       "suffix": "a"
     },
     {
       "canonical": "{亮上}",
-      "sourceCode": "Cga",
+      "sourceCode": "Ha",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
-      "suffix": "ga"
+      "key": "h",
+      "suffix": "a"
     },
     {
       "canonical": "高",
-      "sourceCode": "Cga",
+      "sourceCode": "Vga",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "v",
       "suffix": "ga"
     },
     {
       "canonical": "{纟上}",
-      "sourceCode": "Ci",
+      "sourceCode": "Pi",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "p",
       "suffix": "i"
     },
     {
       "canonical": "ᅲ",
-      "sourceCode": "Ci",
+      "sourceCode": "Ni",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "n",
       "suffix": "i"
     },
     {
       "canonical": "纟",
-      "sourceCode": "Ci",
+      "sourceCode": "Mi",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "m",
       "suffix": "i"
     },
     {
-      "canonical": "{鹿上}",
-      "sourceCode": "Clu",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "c",
-      "suffix": "lu"
-    },
-    {
       "canonical": "{京上}",
-      "sourceCode": "Co",
+      "sourceCode": "No",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "n",
       "suffix": "o"
     },
     {
       "canonical": "{介下}",
-      "sourceCode": "Co",
+      "sourceCode": "Fo",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "f",
       "suffix": "o"
     },
     {
       "canonical": "{襄上}",
-      "sourceCode": "Co",
+      "sourceCode": "Wo",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "w",
       "suffix": "o"
     },
     {
       "canonical": "巳",
-      "sourceCode": "Csi",
+      "sourceCode": "Tsi",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "c",
+      "key": "t",
       "suffix": "si"
     },
     {
-      "canonical": "龶",
-      "sourceCode": "Se",
+      "canonical": "{冓上}",
+      "sourceCode": "Ti",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "e"
-    },
-    {
-      "canonical": "{奉下}",
-      "sourceCode": "Ska",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "ka"
-    },
-    {
-      "canonical": "㐄",
-      "sourceCode": "Ska",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "ka"
-    },
-    {
-      "canonical": "{鳥上}",
-      "sourceCode": "Sna",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "na"
-    },
-    {
-      "canonical": "{穀框}",
-      "sourceCode": "So",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{豕下}",
-      "sourceCode": "Ssi",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "si"
-    },
-    {
-      "canonical": "壴",
-      "sourceCode": "Svu",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "vu"
-    },
-    {
-      "canonical": "{烏上}",
-      "sourceCode": "Swu",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "d",
-      "suffix": "wu"
-    },
-    {
-      "canonical": "{曾中}",
-      "sourceCode": "Hri",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "f",
-      "suffix": "ri"
-    },
-    {
-      "canonical": "{横日}",
-      "sourceCode": "Hri",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "f",
-      "suffix": "ri"
-    },
-    {
-      "canonical": "{虍上}",
-      "sourceCode": "Rhu",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "hu"
-    },
-    {
-      "canonical": "⺁",
-      "sourceCode": "Ri",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
+      "key": "t",
       "suffix": "i"
     },
     {
-      "canonical": "{飞右}",
-      "sourceCode": "Rje",
+      "canonical": "卄",
+      "sourceCode": "Hi",
       "glyphs": [
-        ""
+        "卄"
       ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "je"
-    },
-    {
-      "canonical": "冫",
-      "sourceCode": "Rje",
-      "glyphs": [
-        "冫"
-      ],
-      "reason": "高频基础部首，官方字根表遗漏",
-      "confidence": "reviewed",
-      "provenance": "maintainer-review",
-      "key": "g",
-      "suffix": "je"
-    },
-    {
-      "canonical": "{乍下}",
-      "sourceCode": "Ro",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{南心}",
-      "sourceCode": "Ro",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{黽中}",
-      "sourceCode": "Ro",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{龍右}",
-      "sourceCode": "Ro",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "o"
-    },
-    {
-      "canonical": "⺊",
-      "sourceCode": "Rpu",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "pu"
-    },
-    {
-      "canonical": "丂",
-      "sourceCode": "Rqa",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "qa"
-    },
-    {
-      "canonical": "⺶",
-      "sourceCode": "Rya",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "ya"
-    },
-    {
-      "canonical": "⺷",
-      "sourceCode": "Rya",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "g",
-      "suffix": "ya"
-    },
-    {
-      "canonical": "{丄丶}",
-      "sourceCode": "Ka",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "a"
-    },
-    {
-      "canonical": "{二撇}",
-      "sourceCode": "Ka",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "a"
-    },
-    {
-      "canonical": "冎",
-      "sourceCode": "Ka",
-      "glyphs": [
-        "冎"
-      ],
-      "reason": "Yuniversus官方映射表支持该标准字符",
+      "reason": "拆分表使用的独立基础根，官方字根表遗漏",
       "confidence": "reviewed",
       "provenance": "maintainer-review",
       "key": "h",
-      "suffix": "a"
-    },
-    {
-      "canonical": "{專上}",
-      "sourceCode": "Kce",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "ce"
-    },
-    {
-      "canonical": "叀",
-      "sourceCode": "Kce",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "ce"
-    },
-    {
-      "canonical": "{阜上}",
-      "sourceCode": "Kdi",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "di"
-    },
-    {
-      "canonical": "{贏框}",
-      "sourceCode": "Klo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "lo"
-    },
-    {
-      "canonical": "{微框}",
-      "sourceCode": "Ko",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "o"
-    },
-    {
-      "canonical": "龸",
-      "sourceCode": "Ksa",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "sa"
-    },
-    {
-      "canonical": "{五下}",
-      "sourceCode": "Kwu",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "h",
-      "suffix": "wu"
-    },
-    {
-      "canonical": "七",
-      "sourceCode": "Mi",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "j",
       "suffix": "i"
     },
     {
-      "canonical": "忄",
-      "sourceCode": "Mi",
+      "canonical": "ス",
+      "sourceCode": "Ro",
       "glyphs": [
-        "忄"
-      ],
-      "reason": "高频基础部首，官方字根表遗漏",
-      "confidence": "reviewed",
-      "provenance": "maintainer-review",
-      "key": "j",
-      "suffix": "i"
-    },
-    {
-      "canonical": "尸",
-      "sourceCode": "Msi",
-      "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "j",
-      "suffix": "si"
-    },
-    {
-      "canonical": "ナ",
-      "sourceCode": "Mvo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "j",
-      "suffix": "vo"
-    },
-    {
-      "canonical": "乙",
-      "sourceCode": "Wi",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "k",
-      "suffix": "i"
-    },
-    {
-      "canonical": "犭",
-      "sourceCode": "Wka",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "k",
-      "suffix": "ka"
-    },
-    {
-      "canonical": "卯",
-      "sourceCode": "Wma",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "k",
-      "suffix": "ma"
-    },
-    {
-      "canonical": "{乐上}",
-      "sourceCode": "Wo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "k",
+      "key": "r",
       "suffix": "o"
     },
     {
-      "canonical": "{卬左}",
-      "sourceCode": "Wo",
+      "canonical": "マ",
+      "sourceCode": "Do",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "k",
+      "key": "d",
       "suffix": "o"
     },
     {
-      "canonical": "{卯左}",
-      "sourceCode": "Wo",
+      "canonical": "{曹上}",
+      "sourceCode": "Po",
       "glyphs": [
-        "",
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "k",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{爲下}",
-      "sourceCode": "Wo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "k",
-      "suffix": "o"
-    },
-    {
-      "canonical": "⺧",
-      "sourceCode": "Wo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "k",
+      "key": "p",
       "suffix": "o"
     },
     {
       "canonical": "匕",
-      "sourceCode": "Ti",
+      "sourceCode": "Hbi",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "l",
+      "key": "h",
+      "suffix": "bi"
+    },
+    {
+      "canonical": "{曾中}",
+      "sourceCode": "Ni",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "n",
+      "suffix": "i"
+    },
+    {
+      "canonical": "{横日}",
+      "sourceCode": "Yi",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "y",
       "suffix": "i"
     },
     {
       "canonical": "ㄗ",
-      "sourceCode": "Jje",
+      "sourceCode": "De",
       "glyphs": [
         "ㄗ"
       ],
       "reason": "标准Unicode字根，现有同码候选不准确",
       "confidence": "reviewed",
       "provenance": "maintainer-review",
-      "key": "m",
-      "suffix": "je"
+      "key": "d",
+      "suffix": "e"
     },
     {
       "canonical": "卩",
-      "sourceCode": "Jje",
+      "sourceCode": "Re",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "m",
-      "suffix": "je"
+      "key": "r",
+      "suffix": "e"
     },
     {
       "canonical": "{于下}",
-      "sourceCode": "Jo",
+      "sourceCode": "Qo",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "m",
+      "key": "q",
       "suffix": "o"
     },
     {
       "canonical": "{向框}",
-      "sourceCode": "Jo",
+      "sourceCode": "Ho",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "m",
+      "key": "h",
       "suffix": "o"
     },
     {
       "canonical": "{囟框}",
-      "sourceCode": "Jo",
+      "sourceCode": "No",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "m",
+      "key": "n",
       "suffix": "o"
     },
     {
@@ -770,14 +354,181 @@
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "m",
+      "key": "j",
       "suffix": "u"
     },
     {
-      "canonical": "{曹上}",
-      "sourceCode": "Do",
+      "canonical": "{即左}",
+      "sourceCode": "Te",
       "glyphs": [
-        ""
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "t",
+      "suffix": "e"
+    },
+    {
+      "canonical": "{炙上}",
+      "sourceCode": "He",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "h",
+      "suffix": "e"
+    },
+    {
+      "canonical": "{祭上}",
+      "sourceCode": "Je",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "j",
+      "suffix": "e"
+    },
+    {
+      "canonical": "{冂丶}",
+      "sourceCode": "Xo",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "x",
+      "suffix": "o"
+    },
+    {
+      "canonical": "{雋下}",
+      "sourceCode": "To",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "t",
+      "suffix": "o"
+    },
+    {
+      "canonical": "千",
+      "sourceCode": "Qqa",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "q",
+      "suffix": "qa"
+    },
+    {
+      "canonical": "龵",
+      "sourceCode": "To",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "t",
+      "suffix": "o"
+    },
+    {
+      "canonical": "龰",
+      "sourceCode": "Xi",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "x",
+      "suffix": "i"
+    },
+    {
+      "canonical": "七",
+      "sourceCode": "Bqi",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "b",
+      "suffix": "qi"
+    },
+    {
+      "canonical": "忄",
+      "sourceCode": "Ci",
+      "glyphs": [
+        "忄"
+      ],
+      "reason": "高频基础部首，官方字根表遗漏",
+      "confidence": "reviewed",
+      "provenance": "maintainer-review",
+      "key": "c",
+      "suffix": "i"
+    },
+    {
+      "canonical": "{眉上}",
+      "sourceCode": "Mi",
+      "glyphs": [
+        ""
+      ],
+      "reason": "官网动态字根图在 Msi 组使用 Yuniversus U+F822",
+      "confidence": "reviewed",
+      "provenance": "maintainer-review",
+      "key": "m",
+      "suffix": "i"
+    },
+    {
+      "canonical": "尸",
+      "sourceCode": "Xsi",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "x",
+      "suffix": "si"
+    },
+    {
+      "canonical": "ナ",
+      "sourceCode": "Fo",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "f",
+      "suffix": "o"
+    },
+    {
+      "canonical": "{鸟上}",
+      "sourceCode": "Da",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "d",
+      "suffix": "a"
+    },
+    {
+      "canonical": "{母框}",
+      "sourceCode": "Vo",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "v",
+      "suffix": "o"
+    },
+    {
+      "canonical": "{畏下}",
+      "sourceCode": "No",
+      "glyphs": [
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
@@ -785,336 +536,357 @@
       "suffix": "o"
     },
     {
-      "canonical": "{即左}",
-      "sourceCode": "Gge",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "p",
-      "suffix": "ge"
-    },
-    {
-      "canonical": "{馬上}",
-      "sourceCode": "Gma",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "p",
-      "suffix": "ma"
-    },
-    {
-      "canonical": "{周框}",
-      "sourceCode": "Pa",
-      "glyphs": [
-        "⺆"
-      ],
-      "reason": "方案维护者确认以标准部件⺆显示",
-      "confidence": "reviewed",
-      "provenance": "maintainer-review",
-      "key": "q",
-      "suffix": "a"
-    },
-    {
-      "canonical": "勹",
-      "sourceCode": "Pa",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "q",
-      "suffix": "a"
-    },
-    {
-      "canonical": "{荒下}",
-      "sourceCode": "Pe",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "q",
-      "suffix": "e"
-    },
-    {
-      "canonical": "儿",
-      "sourceCode": "Pe",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "q",
-      "suffix": "e"
-    },
-    {
-      "canonical": "⺽",
-      "sourceCode": "Pu",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "q",
-      "suffix": "u"
-    },
-    {
-      "canonical": "{兴上}",
-      "sourceCode": "Na",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "r",
-      "suffix": "a"
-    },
-    {
-      "canonical": "⺍",
-      "sourceCode": "Na",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "r",
-      "suffix": "a"
-    },
-    {
-      "canonical": "{僉上}",
-      "sourceCode": "Nhe",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "r",
-      "suffix": "he"
-    },
-    {
-      "canonical": "{龠上}",
-      "sourceCode": "Nhe",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "r",
-      "suffix": "he"
-    },
-    {
-      "canonical": "{⺮右}",
-      "sourceCode": "No",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "r",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{乞上}",
-      "sourceCode": "No",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "r",
-      "suffix": "o"
-    },
-    {
-      "canonical": "⺮",
-      "sourceCode": "Nu",
-      "glyphs": [
-        "竹"
-      ],
-      "reason": "方案维护者确认竹字头以竹显示",
-      "confidence": "reviewed",
-      "provenance": "maintainer-review",
-      "key": "r",
-      "suffix": "u"
-    },
-    {
-      "canonical": "𡗗",
-      "sourceCode": "Ydi",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "s",
-      "suffix": "di"
-    },
-    {
-      "canonical": "{鸟上}",
-      "sourceCode": "Fna",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "t",
-      "suffix": "na"
-    },
-    {
-      "canonical": "{互中}",
-      "sourceCode": "Fo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "t",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{亞中}",
-      "sourceCode": "Fo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "t",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{母框}",
-      "sourceCode": "Fo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "t",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{畏下}",
-      "sourceCode": "Fo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "t",
-      "suffix": "o"
-    },
-    {
       "canonical": "{衣下}",
-      "sourceCode": "Fo",
+      "sourceCode": "Mo",
       "glyphs": [
         "",
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
+      "key": "m",
+      "suffix": "o"
+    },
+    {
+      "canonical": "𡗗",
+      "sourceCode": "Wi",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "w",
+      "suffix": "i"
+    },
+    {
+      "canonical": "{丄丶}",
+      "sourceCode": "Sa",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "s",
+      "suffix": "a"
+    },
+    {
+      "canonical": "{二撇}",
+      "sourceCode": "Ra",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "r",
+      "suffix": "a"
+    },
+    {
+      "canonical": "{專上}",
+      "sourceCode": "Ne",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "n",
+      "suffix": "e"
+    },
+    {
+      "canonical": "{阜上}",
+      "sourceCode": "Di",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "d",
+      "suffix": "i"
+    },
+    {
+      "canonical": "{贏框}",
+      "sourceCode": "Ho",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "h",
+      "suffix": "o"
+    },
+    {
+      "canonical": "{微框}",
+      "sourceCode": "To",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
       "key": "t",
       "suffix": "o"
     },
     {
-      "canonical": "{亜下}",
-      "sourceCode": "Fye",
+      "canonical": "龸",
+      "sourceCode": "Ya",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "t",
-      "suffix": "ye"
+      "key": "y",
+      "suffix": "a"
     },
     {
-      "canonical": "{亞下}",
-      "sourceCode": "Fye",
+      "canonical": "{五下}",
+      "sourceCode": "Nu",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
+      "key": "n",
+      "suffix": "u"
+    },
+    {
+      "canonical": "龶",
+      "sourceCode": "Be",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "b",
+      "suffix": "e"
+    },
+    {
+      "canonical": "{奉下}",
+      "sourceCode": "Pa",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "p",
+      "suffix": "a"
+    },
+    {
+      "canonical": "㐄",
+      "sourceCode": "Ra",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "r",
+      "suffix": "a"
+    },
+    {
+      "canonical": "{穀框}",
+      "sourceCode": "No",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "n",
+      "suffix": "o"
+    },
+    {
+      "canonical": "{豕下}",
+      "sourceCode": "Fi",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "f",
+      "suffix": "i"
+    },
+    {
+      "canonical": "壴",
+      "sourceCode": "Lu",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "l",
+      "suffix": "u"
+    },
+    {
+      "canonical": "匚",
+      "sourceCode": "Pa",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "p",
+      "suffix": "a"
+    },
+    {
+      "canonical": "⺁",
+      "sourceCode": "Di",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "d",
+      "suffix": "i"
+    },
+    {
+      "canonical": "{飞右}",
+      "sourceCode": "Je",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "j",
+      "suffix": "e"
+    },
+    {
+      "canonical": "冫",
+      "sourceCode": "Te",
+      "glyphs": [
+        "冫"
+      ],
+      "reason": "高频基础部首，官方字根表遗漏",
+      "confidence": "reviewed",
+      "provenance": "maintainer-review",
       "key": "t",
-      "suffix": "ye"
+      "suffix": "e"
+    },
+    {
+      "canonical": "{乍下}",
+      "sourceCode": "Wo",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "w",
+      "suffix": "o"
+    },
+    {
+      "canonical": "{南心}",
+      "sourceCode": "Lo",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "l",
+      "suffix": "o"
+    },
+    {
+      "canonical": "⺊",
+      "sourceCode": "Cu",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "c",
+      "suffix": "u"
+    },
+    {
+      "canonical": "丂",
+      "sourceCode": "Ba",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "b",
+      "suffix": "a"
+    },
+    {
+      "canonical": "⺶",
+      "sourceCode": "Da",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "d",
+      "suffix": "a"
+    },
+    {
+      "canonical": "⺷",
+      "sourceCode": "Ya",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "y",
+      "suffix": "a"
     },
     {
       "canonical": "刂",
-      "sourceCode": "Vda",
+      "sourceCode": "La",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "v",
-      "suffix": "da"
+      "key": "l",
+      "suffix": "a"
     },
     {
       "canonical": "{卑上}",
-      "sourceCode": "Vfu",
+      "sourceCode": "Fu",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "v",
-      "suffix": "fu"
-    },
-    {
-      "canonical": "{鬼左}",
-      "sourceCode": "Vgi",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "v",
-      "suffix": "gi"
+      "key": "f",
+      "suffix": "u"
     },
     {
       "canonical": "{具上}",
-      "sourceCode": "Vo",
+      "sourceCode": "Do",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "v",
+      "key": "d",
       "suffix": "o"
     },
     {
       "canonical": "{鼠下}",
-      "sourceCode": "Vo",
+      "sourceCode": "No",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "v",
+      "key": "n",
       "suffix": "o"
     },
     {
       "canonical": "コ",
-      "sourceCode": "Vo",
+      "sourceCode": "No",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "v",
+      "key": "n",
       "suffix": "o"
     },
     {
       "canonical": "ユ",
-      "sourceCode": "Vo",
+      "sourceCode": "Mo",
       "glyphs": [
         ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "v",
+      "key": "m",
       "suffix": "o"
     },
     {
@@ -1129,182 +901,206 @@
       "suffix": "yi"
     },
     {
-      "canonical": "匚",
-      "sourceCode": "Xfa",
+      "canonical": "乙",
+      "sourceCode": "Kyi",
       "glyphs": [
-        ""
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "k",
+      "suffix": "yi"
+    },
+    {
+      "canonical": "犭",
+      "sourceCode": "Wa",
+      "glyphs": [
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
       "key": "w",
-      "suffix": "fa"
+      "suffix": "a"
     },
     {
-      "canonical": "{冓上}",
-      "sourceCode": "Qi",
+      "canonical": "卯",
+      "sourceCode": "Dma",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "x",
-      "suffix": "i"
+      "key": "d",
+      "suffix": "ma"
     },
     {
-      "canonical": "{華中}",
-      "sourceCode": "Qi",
+      "canonical": "{乐上}",
+      "sourceCode": "Po",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "x",
-      "suffix": "i"
+      "key": "p",
+      "suffix": "o"
     },
     {
-      "canonical": "卄",
-      "sourceCode": "Qi",
+      "canonical": "{卬左}",
+      "sourceCode": "Ro",
       "glyphs": [
-        "卄"
+        ""
       ],
-      "reason": "拆分表使用的独立基础根，官方字根表遗漏",
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "r",
+      "suffix": "o"
+    },
+    {
+      "canonical": "⺧",
+      "sourceCode": "Ro",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "r",
+      "suffix": "o"
+    },
+    {
+      "canonical": "{周框}",
+      "sourceCode": "Ra",
+      "glyphs": [
+        "⺆"
+      ],
+      "reason": "方案维护者确认以标准部件⺆显示",
       "confidence": "reviewed",
       "provenance": "maintainer-review",
-      "key": "x",
-      "suffix": "i"
+      "key": "r",
+      "suffix": "a"
     },
     {
-      "canonical": "ス",
-      "sourceCode": "Qo",
+      "canonical": "勹",
+      "sourceCode": "Sa",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "x",
-      "suffix": "o"
+      "key": "s",
+      "suffix": "a"
     },
     {
-      "canonical": "マ",
-      "sourceCode": "Qo",
+      "canonical": "{荒下}",
+      "sourceCode": "Ne",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "x",
-      "suffix": "o"
-    },
-    {
-      "canonical": "{炙上}",
-      "sourceCode": "Le",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "y",
+      "key": "n",
       "suffix": "e"
     },
     {
-      "canonical": "{祭上}",
-      "sourceCode": "Le",
+      "canonical": "儿",
+      "sourceCode": "Dfe",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "y",
+      "key": "d",
+      "suffix": "fe"
+    },
+    {
+      "canonical": "⺽",
+      "sourceCode": "Nu",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "n",
+      "suffix": "u"
+    },
+    {
+      "canonical": "{兴上}",
+      "sourceCode": "Fa",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "f",
+      "suffix": "a"
+    },
+    {
+      "canonical": "⺍",
+      "sourceCode": "Ta",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "t",
+      "suffix": "a"
+    },
+    {
+      "canonical": "{龠上}",
+      "sourceCode": "He",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "h",
       "suffix": "e"
     },
     {
-      "canonical": "{冂丶}",
-      "sourceCode": "Ljo",
+      "canonical": "{⺮右}",
+      "sourceCode": "To",
       "glyphs": [
-        ""
+        ""
       ],
       "confidence": "verified",
       "provenance": "self-chaifen",
-      "key": "y",
-      "suffix": "jo"
-    },
-    {
-      "canonical": "{雋下}",
-      "sourceCode": "Ljo",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "y",
-      "suffix": "jo"
-    },
-    {
-      "canonical": "千",
-      "sourceCode": "Lqa",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "y",
-      "suffix": "qa"
-    },
-    {
-      "canonical": "龵",
-      "sourceCode": "Lso",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "y",
-      "suffix": "so"
-    },
-    {
-      "canonical": "龰",
-      "sourceCode": "Lvi",
-      "glyphs": [
-        ""
-      ],
-      "confidence": "verified",
-      "provenance": "self-chaifen",
-      "key": "y",
-      "suffix": "vi"
-    }
-  ],
-  "noCandidate": [
-    {
-      "canonical": "{鬯中}",
-      "sourceCode": "Bi",
-      "reason": "官方字体映射及现有字根数据均无准确对应",
-      "status": "unresolved-reviewed",
-      "key": "b",
-      "suffix": "i"
-    },
-    {
-      "canonical": "{眉上}",
-      "sourceCode": "Msi",
-      "reason": "尸与U+F809均不能准确表示该结构根",
-      "status": "unresolved-reviewed",
-      "key": "j",
-      "suffix": "si"
-    },
-    {
-      "canonical": "{齊右}",
-      "sourceCode": "Wo",
-      "reason": "官方字体映射及现有字根数据均无准确对应",
-      "status": "unresolved-reviewed",
-      "key": "k",
+      "key": "t",
       "suffix": "o"
+    },
+    {
+      "canonical": "{乞上}",
+      "sourceCode": "To",
+      "glyphs": [
+        ""
+      ],
+      "confidence": "verified",
+      "provenance": "self-chaifen",
+      "key": "t",
+      "suffix": "o"
+    },
+    {
+      "canonical": "⺮",
+      "sourceCode": "Su",
+      "glyphs": [
+        "竹"
+      ],
+      "reason": "方案维护者确认竹字头以竹显示",
+      "confidence": "reviewed",
+      "provenance": "maintainer-review",
+      "key": "s",
+      "suffix": "u"
     },
     {
       "canonical": "{步下}",
-      "sourceCode": "Nxa",
-      "reason": "⺌和小均不能准确表示该结构根",
-      "status": "unresolved-reviewed",
-      "key": "r",
-      "suffix": "xa"
+      "sourceCode": "Ha",
+      "glyphs": [
+        ""
+      ],
+      "reason": "官网动态字根图在 Nxa 组使用 Yuniversus U+F550",
+      "confidence": "reviewed",
+      "provenance": "maintainer-review",
+      "key": "h",
+      "suffix": "a"
     }
-  ]
+  ],
+  "noCandidate": []
 }

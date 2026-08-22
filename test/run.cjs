@@ -33,7 +33,8 @@ async function main() {
   fs.mkdirSync(path.join(__dirname, 'artifacts'), { recursive: true });
   await startServer();
   console.log('✅ 服务器已启动 http://localhost:' + PORT);
-  const tests = fs.readdirSync(__dirname).filter((f) => f.endsWith('.test.cjs'));
+  // live.test.cjs 只验证已发布站点，不能混入本地回归（否则会测试上一版线上资产）。
+  const tests = fs.readdirSync(__dirname).filter((f) => f.endsWith('.test.cjs') && f !== 'live.test.cjs');
   let failed = 0;
   for (const t of tests) {
     console.log(`\n=== 运行 ${t} ===`);

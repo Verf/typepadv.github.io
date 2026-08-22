@@ -59,6 +59,7 @@ export function tokenizeChaifenRoots(split) {
   const roots = [];
   const chars = Array.from(split || '');
   for (let i = 0; i < chars.length;) {
+    if (/\s/u.test(chars[i])) { i++; continue; }
     if (chars[i] === '.' && chars.slice(i, i + 3).join('') === '...') { i += 3; continue; }
     if (chars[i] === '…') { i++; continue; }
     if (chars[i] === '{') {

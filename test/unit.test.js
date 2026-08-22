@@ -139,8 +139,8 @@ async function importESM(rel) {
     assert.strictEqual(m.p, 'q');
     assert.strictEqual(m.l, 'w');
     assert.strictEqual(m.d, 'e');
-    // 灵铭编码 ftmo（Gallman 原生）翻译到 QWERTY：f→u, t→d, m→m, o→i
-    assert.strictEqual(layout.translateCode('ftmo', m), 'udmi');
+    // 正式版「宇」vfqo（Gallman 原生）翻译到 QWERTY：v→v, f→u, q→n, o→i
+    assert.strictEqual(layout.translateCode('vfqo', m), 'vuni');
   });
   t('translateCodeToLayout: 星陈 ifk 翻译 gallman 为 osa（与集成测试一致）', () => {
     const m = layout.buildCodeTranslateMap('qwerty', 'gallman');
@@ -282,30 +282,31 @@ async function importESM(rel) {
 
   // ---- 灵铭方案（内置）----
   console.log('\n[gallming] 灵铭内置方案');
-  await t('灵铭码表可解析（code-right 自动检测）', async () => {
+  await t('灵铭五码正式版码表可解析并保留直出简码与全码', async () => {
     const fs = await import('fs');
     const text = fs.readFileSync(new URL('../assets/code-tables/mabiao-ling.txt', import.meta.url), 'utf8');
     const p = parser.parseCodeTable(text);
     assert.strictEqual(p.direction, 'code-left'); // 已转为编码在左
-    assert.ok(p.stats.uniqueChars > 20000, '灵铭码表应覆盖 2 万+ 字，实际 ' + p.stats.uniqueChars);
-    // 关键字编码（qf 正式版：q 直用、零声母 f）
-    assert.deepStrictEqual(p.charToCodes.get('宇'), ['htmo']);
-    assert.deepStrictEqual(p.charToCodes.get('的'), ['e', 'hbql']);
-    assert.deepStrictEqual(p.charToCodes.get('年'), ['rda', 'rdka']);
-    assert.deepStrictEqual(p.charToCodes.get('久'), ['blu']);
-    assert.deepStrictEqual(p.charToCodes.get('其'), ['xqi']);
-    assert.deepStrictEqual(p.charToCodes.get('中'), ['ni', 'nhi']);
-    assert.deepStrictEqual(p.charToCodes.get('一'), ['ti']);
+    assert.strictEqual(p.stats.uniqueChars, 7488);
+    assert.strictEqual(p.stats.entries, 7566);
+    assert.deepStrictEqual(p.charToCodes.get('宇'), ['vfqo']);
+    assert.deepStrictEqual(p.charToCodes.get('的'), ['e', 'vbsl']);
+    assert.deepStrictEqual(p.charToCodes.get('年'), ['tra']);
+    assert.deepStrictEqual(p.charToCodes.get('久'), ['lru']);
+    assert.deepStrictEqual(p.charToCodes.get('其'), ['kqi']);
+    assert.deepStrictEqual(p.charToCodes.get('中'), ['go', 'gkri']);
+    assert.deepStrictEqual(p.charToCodes.get('一'), ['a', 'fyi']);
+    assert.deepStrictEqual(p.charToCodes.get('𬉼'), ['chpc']);
   });
   await t('灵铭拆分表已转 JSON 且结构正确', async () => {
     const fs = await import('fs');
     const raw = JSON.parse(fs.readFileSync(new URL('../assets/data/chaifen-ling.json', import.meta.url), 'utf8'));
-    assert.ok(Object.keys(raw).length > 20000, '拆分表应覆盖 2 万+ 字');
+    assert.strictEqual(Object.keys(raw).length, 7488);
     const yu = raw['宇'];
     assert.ok(yu && yu.includes('\t'), '宇 的拆分应有 \t 分隔');
     const [split, code] = yu.split('\t');
     assert.ok(split.includes('宀'), '宇 拆分含 宀');
-    assert.strictEqual(code, 'HTMo'); // qf 灵铭全码（Gallman 原生）
+    assert.strictEqual(code, 'VFQo'); // 纯规范声码五码正式版（Gallman 原生）
   });
   await t('灵铭字根表已转 JSON（Gallman 键帽直配）', async () => {
     const fs = await import('fs');
@@ -314,10 +315,12 @@ async function importESM(rel) {
     assert.strictEqual(keys.length, 20, '灵铭应为 20 个大码键');
     // 键帽为 Gallman 辅音键
     for (const k of keys) assert.ok(/^[a-z]$/.test(k), '键帽应为字母: ' + k);
-    // p 键含字根
-    assert.ok(raw['p'] && raw['p'].length > 0, 'p 键应有字根');
-    // 声韵码字段 s 存在
-    assert.ok(raw['p'].every((r) => typeof r.s === 'string' && r.s.length > 0), '每条字根应有声韵');
+    assert.strictEqual(Object.values(raw).reduce((n, entries) => n + entries.length, 0), 327);
+    assert.ok(raw.p.some((r) => r.f === '子' && r.s === 'vi'), 'p 键应包含正式版 子/Pvi');
+    assert.ok(raw.k.some((r) => r.f === '人' && r.s === 're'), '成字根 人 应保留规范声码');
+    assert.ok(raw.k.some((r) => r.f === '亻' && r.s === 'e'), '构件根 亻 应省略声码');
+    assert.ok(raw.w.some((r) => r.f === '\uF502' && r.s === 'o'), '结构根 {乍下} 应使用 Yuniversus 单字形');
+    assert.ok(!Object.values(raw).flat().some((r) => r.f === '{乍下}'), '字根表不应显示花括号占位文本');
   });
   await t('schemes 注册表：星陈/灵铭元数据正确', async () => {
     const schemes = await importESM('assets/js/schemes.js');
@@ -330,6 +333,8 @@ async function importESM(rel) {
     assert.ok(ling.codeTable.url.includes('mabiao-ling.txt'));
     assert.ok(ling.chaifen.url.includes('chaifen-ling.json'));
     assert.ok(ling.zigen.url.includes('zigen-ling.json'));
+    assert.strictEqual(ling.release.version, '20260822-max5-v1');
+    assert.ok(ling.codeTable.cacheKey.includes('max5'));
   });
   await t('chaifen.js: 按方案多源加载', async () => {
     const chaifen = await importESM('assets/js/chaifen.js');
@@ -351,8 +356,9 @@ async function importESM(rel) {
       assert.ok(sInfo && sInfo.code === 'IFKc', '星陈拆分: 宇=IFKc，实际 ' + (sInfo && sInfo.code));
       await chaifen.loadChaifenData(ling.chaifen);
       const lInfo = chaifen.getChaifen('宇');
-      assert.ok(lInfo && lInfo.code === 'HTMo', 'qf 灵铭拆分: 宇=HTMo，实际 ' + (lInfo && lInfo.code));
+      assert.ok(lInfo && lInfo.code === 'VFQo', '五码灵铭拆分: 宇=VFQo，实际 ' + (lInfo && lInfo.code));
       assert.ok(lInfo.split.includes('宀'), '灵铭拆分含 宀');
+      assert.deepEqual(lInfo.rootCodes, ['Va', 'Fyi', 'Qo']);
       // 切回星陈（再次重新加载）
       await chaifen.loadChaifenData(star.chaifen);
       const sInfo2 = chaifen.getChaifen('宇');
@@ -363,7 +369,7 @@ async function importESM(rel) {
   });
   await t('chaifen.js: 结构根与完整根码分词', async () => {
     const chaifen = await importESM('assets/js/chaifen.js');
-    assert.deepEqual(chaifen.tokenizeChaifenRoots('{乞上}㐄...'), ['{乞上}', '㐄']);
+    assert.deepEqual(chaifen.tokenizeChaifenRoots('{乞上} 㐄...'), ['{乞上}', '㐄']);
     assert.deepEqual(chaifen.tokenizeChaifenCodes('RSka'), ['R', 'Ska']);
     assert.throws(() => chaifen.tokenizeChaifenRoots('{乞上'), /缺少右括号/);
     assert.throws(() => chaifen.tokenizeChaifenRoots('乞}上'), /多余右括号/);
@@ -373,8 +379,8 @@ async function importESM(rel) {
     for (const file of ['chaifen.json', 'chaifen-ling.json']) {
       const raw = JSON.parse(fs.readFileSync(new URL(`../assets/data/${file}`, import.meta.url), 'utf8'));
       for (const [char, value] of Object.entries(raw)) {
-        const [split, code] = value.split('\t');
-        assert.equal(chaifen.tokenizeChaifenRoots(split).length, chaifen.tokenizeChaifenCodes(code).length, `${file}:${char}`);
+        const [split, code, perRoots] = value.split('\t');
+        assert.equal(chaifen.tokenizeChaifenRoots(split).length, chaifen.tokenizeChaifenCodes(perRoots || code).length, `${file}:${char}`);
       }
     }
   });
@@ -426,10 +432,10 @@ async function importESM(rel) {
   console.log('\n[root-deck] 字根题库与复习调度');
   const deck = await importESM('assets/js/root-deck.js');
   await t('root-deck: 从字根图生成稳定题卡并保留完整根码', () => {
-    const cards = deck.buildRootCards({ X: [{ f: '其', s: 'qi' }], p: [{ f: '㐄', s: 'ka' }] }, 'ling-builtin', 'qf1');
+    const cards = deck.buildRootCards({ K: [{ f: '其', s: 'qi' }], r: [{ f: '㐄', s: 'a' }] }, 'ling-builtin', 'max5-v1');
     assert.equal(cards.length, 2);
-    assert.equal(cards.find((c) => c.root === '㐄').code, 'pka');
-    assert.ok(cards[0].id.includes('ling-builtin:qf1'));
+    assert.equal(cards.find((c) => c.root === '㐄').code, 'ra');
+    assert.ok(cards[0].id.includes('ling-builtin:max5-v1'));
   });
   await t('root-deck: 错题会重置阶段，正确题进入长期复习', () => {
     const card = deck.buildRootCards({ a: [{ f: '一', s: 'i' }] }, 'star-builtin')[0];

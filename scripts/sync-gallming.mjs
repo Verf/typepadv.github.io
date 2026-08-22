@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { generateFormalAssets } from './gallming-formal.mjs';
 
 export const UPSTREAM_URL = 'https://git.nas.verf.uk/verf/gallming.git';
 const DAMA_ORDER = 'BCDFGHJKLMNPQRSTVWXY';
@@ -335,46 +336,8 @@ export function locateUpstreamRoot(source) {
   throw new Error(`找不到 gallming 仓库交付物: ${source}`);
 }
 
-export function generate(source, projectRoot, expected = { codeEntries: 21653, chars: 20993 }) {
-  const base = locateUpstreamRoot(source);
-  const read = (relative) => readFileSync(join(base, relative), 'utf8');
-  const mainYaml = read('out/gallming.dict.yaml');
-  const chaifenYaml = read('out/gallming_chaifen.dict.yaml');
-  const rootsYaml = read('data/yuling.roots.dict.yaml');
-  const best = JSON.parse(read('out/best_perm.json'));
-  const candidatesText = read('out/gallming_root_candidates.json');
-  const candidates = JSON.parse(candidatesText);
-  const permutation = Array.isArray(best.perm) ? best.perm.join('') : '';
-  if (permutation.length !== 20 || new Set(permutation).size !== 20) throw new Error('best_perm.json 中的 perm 无效');
-  const encoding = validateQfEncoding(best.encoding);
-  const csv = readFileSync(join(base, 'data/yuniversus-chaipua.csv'));
-  const font = readFileSync(join(base, 'data/Yuniversus.woff'));
-  validateCandidateDelivery(candidates, permutation, csv, font, encoding);
-  const targets = {
-    'assets/code-tables/mabiao-ling.txt': buildCodeTable(mainYaml),
-    'assets/data/chaifen-ling.json': pythonStyleJson(parseChaifen(chaifenYaml)),
-  };
-  const displayRoots = mergeCandidateDisplayRoots(buildRoots(rootsYaml, chaifenYaml, permutation), candidates);
-  if (expected.validateIdentities !== false) validateRootIdentityCoverage(displayRoots, chaifenYaml, candidates);
-  targets['assets/data/zigen-ling.json'] = pythonStyleJson(displayRoots);
-  targets['assets/data/gallming-root-candidates.json'] = `${JSON.stringify(candidates, null, 2)}\n`;
-  targets['assets/data/yuniversus-chaipua.csv'] = csv;
-  targets['assets/fonts/Yuniversus.woff'] = font;
-  const chaifen = JSON.parse(targets['assets/data/chaifen-ling.json']);
-  if (targets['assets/code-tables/mabiao-ling.txt'].split('\n').filter(Boolean).length !== expected.codeEntries) throw new Error(`主码表条目数不是预期的 ${expected.codeEntries}`);
-  if (Object.keys(chaifen).length !== expected.chars) throw new Error(`拆分字数不是预期的 ${expected.chars}`);
-  const codeTable = targets['assets/code-tables/mabiao-ling.txt'];
-  const qfExamples = { '的': 'e', '年': 'rda', '久': 'blu', '其': 'xqi', '宇': 'htmo' };
-  for (const [char, code] of Object.entries(qfExamples)) {
-    if (!codeTable.includes(`${code}\t${char}\n`)) throw new Error(`qf 关键编码校验失败：${char} 应为 ${code}`);
-  }
-  if (chaifen['宇'] !== '宀一{于下}\tHTMo\tHa-Ti-Mo'
-      || chaifen['年'] !== '{乞上}㐄\tRDka\tRo-Dka'
-      || chaifen['久'] !== '⺈乀\tBLu\tBi-Lu'
-      || chaifen['其'] !== '其\tXqi\tXqi') {
-    throw new Error('qf 关键拆分编码校验失败');
-  }
-  return targets;
+export function generate(source) {
+  return generateFormalAssets(source);
 }
 
 export function main(argv = process.argv.slice(2), options = {}) {

@@ -2,7 +2,7 @@
 // 星陈数据源：assets/data/zigen-star.json（397字根，26键A-Y，Z为空）
 //   结构：{ "A": [{f: 字根, s: 小码}, ...], ... } 大码 A-Y
 // 灵铭（gallming）数据源：assets/data/zigen-ling.json（文件名为兼容性遗留，20个 Gallman 辅音键）
-//   结构：{ "p": [{f: 字根, s: 声韵}, ...], ... } 键帽=Gallman物理键
+//   结构：{ "p": [{f: 字根, s: 根码后缀}, ...], ... }；成字根后缀=规范声码+韵码，构件根=韵码
 
 import { QWERTY_ROWS } from './layout.js';
 

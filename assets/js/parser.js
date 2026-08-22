@@ -13,7 +13,7 @@ export function detectDirection(line) {
   if (tokens.length < 2) return null;
   const first = tokens[0];
   const isCode = /^[a-z0-9]+$/i.test(first); // 编码一般是字母/数字
-  const isHan = /[\u4e00-\u9fff]/.test(first);
+  const isHan = isSingleHan(first);
   if (isCode && !isHan) return 'code-left';
   if (isHan && !isCode) return 'code-right';
   return null;
@@ -86,7 +86,7 @@ export function parseCodeTable(text) {
 
 /** 判断是否为单个汉字（码点长度 1 且含汉字） */
 function isSingleHan(ch) {
-  return Array.from(ch).length === 1 && /[\u4e00-\u9fff]/.test(ch);
+  return Array.from(ch).length === 1 && /^(?:\p{Script=Han}|〇)$/u.test(ch);
 }
 
 function addEntry(map, ch, code) {
@@ -118,7 +118,7 @@ export function lookupAllCodes(parsedTable, ch) {
  * 判断文本是否为码表可用的内容（含至少一个汉字）。
  */
 export function hasHan(text) {
-  return /[\u4e00-\u9fff]/.test(text);
+  return /(?:\p{Script=Han}|〇)/u.test(text);
 }
 
 // ---- 独立于 DOM 的纯逻辑单元（便于测试） ----

@@ -16,9 +16,10 @@ export const BUILTIN_SCHEMES = {
   'ling-builtin': {
     key: 'ling-builtin',
     name: '灵铭（内置）',
-    codeTable: { url: 'assets/code-tables/mabiao-ling.txt?v=qf1', direction: 'code-left', cacheKey: 'gallming-qf-v1' },
-    chaifen: { url: 'assets/data/chaifen-ling.json?v=qf1', cacheKey: 'gallming-qf-chaifen-v1' },
-    zigen: { url: 'assets/data/zigen-ling.json?v=qf1', candidatesUrl: 'assets/data/gallming-root-candidates.json?v=qf1' },
+    codeTable: { url: 'assets/code-tables/mabiao-ling.txt?v=max5-v1', direction: 'code-left', cacheKey: 'gallming-max5-v1' },
+    chaifen: { url: 'assets/data/chaifen-ling.json?v=max5-v1', cacheKey: 'gallming-max5-chaifen-v1' },
+    zigen: { url: 'assets/data/zigen-ling.json?v=max5-v1', candidatesUrl: 'assets/data/gallming-root-candidates.json?v=max5-v1' },
+    release: { url: 'assets/data/gallming-release.json?v=max5-v1', version: '20260822-max5-v1' },
     codeBaseLayout: 'gallman', // 灵铭编码原生基于 Gallman 键位
     defaultTranslate: false,  // 默认不翻译（编码即按键）
   },
